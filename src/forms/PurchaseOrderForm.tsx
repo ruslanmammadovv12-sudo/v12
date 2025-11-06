@@ -6,6 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { t } from '@/utils/i18n';
 import { MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { toast } from 'sonner';
@@ -41,6 +45,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
   const [orderItems, setOrderItems] = useState<PurchaseOrderItemState[]>([{ productId: '', qty: 1, price: 0 }]);
   const [selectedCurrency, setSelectedCurrency] = useState<'AZN' | 'USD' | 'EUR' | 'RUB'>('AZN');
   const [manualExchangeRate, setManualExchangeRate] = useState<number | undefined>(undefined);
+  const [openComboboxIndex, setOpenComboboxIndex] = useState<number | null>(null); // State for which product combobox is open
 
   const supplierMap = useMemo(() => suppliers.reduce((acc, s) => ({ ...acc, [s.id]: s }), {} as { [key: number]: Supplier }), [suppliers]);
   const productMap = useMemo(() => products.reduce((acc, p) => ({ ...acc, [p.id]: p }), {} as { [key: number]: Product }), [products]);
@@ -345,21 +350,47 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
         <div id="order-items">
           {orderItems.map((item, index) => (
             <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
-              <Select
-                onValueChange={(value) => handleOrderItemChange(index, 'productId', parseInt(value))}
-                value={String(item.productId)}
-              >
-                <SelectTrigger className="col-span-5">
-                  <SelectValue placeholder={t('selectProduct')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map(p => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name} ({p.sku})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={openComboboxIndex === index} onOpenChange={(open) => setOpenComboboxIndex(open ? index : null)}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openComboboxIndex === index}
+                    className="col-span-5 justify-between"
+                  >
+                    {item.productId
+                      ? productMap[item.productId]?.name || t('selectProduct')
+                      : t('selectProduct')}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                  <Command>
+                    <CommandInput placeholder={t('searchProductBySku')} />
+                    <CommandEmpty>{t('noProductFound')}</CommandEmpty>
+                    <CommandGroup>
+                      {products.map((product) => (
+                        <CommandItem
+                          key={product.id}
+                          value={`${product.name} ${product.sku}`} // Searchable value
+                          onSelect={() => {
+                            handleOrderItemChange(index, 'productId', product.id);
+                            setOpenComboboxIndex(null);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              item.productId === product.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {product.name} ({product.sku})
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <Input
                 type="number"
                 value={item.qty}

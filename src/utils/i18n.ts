@@ -77,6 +77,8 @@ const i18n = {
     costOfGoodsSold: 'Cost of Goods Sold', // New translation
     vatCollectedFromSales: 'VAT Collected From Sales', // New translation
     chooseJsonFile: 'Choose JSON File', // New translation
+    searchProductBySku: 'Search product by name or SKU...', // New translation
+    noProductFound: 'No product found.', // New translation
   }
 };
 
