@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 import { Download, Upload } from 'lucide-react';
 
 const DataImportExport: React.FC = () => {
@@ -34,11 +33,17 @@ const DataImportExport: React.FC = () => {
       settings,
     };
 
-    const ws = XLSX.utils.json_to_sheet([dataToExport]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "ERP_Backup");
-    XLSX.writeFile(wb, `erp_data_backup_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success(t('success'), { description: t('backupData') + ' exported successfully.' });
+    const jsonString = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `erp_data_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(t('success'), { description: t('backupData') + ' exported successfully to JSON.' });
   };
 
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,18 +56,13 @@ const DataImportExport: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet);
+        const data = e.target?.result as string;
+        const importedData = JSON.parse(data);
 
-        if (json.length === 0) {
-          toast.error(t('restoreError'), { description: 'Empty or invalid backup file.' });
+        if (typeof importedData !== 'object' || importedData === null) {
+          toast.error(t('restoreError'), { description: 'Invalid JSON structure in backup file.' });
           return;
         }
-
-        const importedData = json[0] as any;
 
         showConfirmationModal(
           t('restoreData'),
@@ -87,10 +87,10 @@ const DataImportExport: React.FC = () => {
 
       } catch (error) {
         console.error("Error importing data:", error);
-        toast.error(t('restoreError'), { description: 'Failed to parse backup file.' });
+        toast.error(t('restoreError'), { description: 'Failed to parse backup JSON file.' });
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsText(file);
   };
 
   return (
@@ -100,7 +100,7 @@ const DataImportExport: React.FC = () => {
       <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-6">
         <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('backupData')}</h2>
         <p className="text-gray-600 dark:text-slate-400 mb-4">
-          {t('exportDataToExcel')}
+          {t('exportDataToJson')}
         </p>
         <Button onClick={handleExportData} className="bg-sky-500 hover:bg-sky-600 text-white">
           <Download className="w-4 h-4 mr-2" />
@@ -118,7 +118,7 @@ const DataImportExport: React.FC = () => {
           <Input
             id="import-file"
             type="file"
-            accept=".xlsx, .xls"
+            accept=".json"
             onChange={handleImportData}
             className="block w-full text-sm text-gray-500
             file:mr-4 file:py-2 file:px-4

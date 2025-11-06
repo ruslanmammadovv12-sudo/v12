@@ -65,7 +65,7 @@ const i18n = {
     areYouSure: 'Are You Sure?',
     productSubtotalNative: 'Product Subtotal (Native)',
     stockAvailable: 'Stock Available',
-    exportDataToExcel: 'Export Data to Excel',
+    exportDataToJson: 'Export Data to JSON', // Updated translation
     export: 'Export',
     noProductsToAnalyze: 'No products to analyze for this period.',
     cancel: 'Cancel',
