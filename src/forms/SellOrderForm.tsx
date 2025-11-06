@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { Check, ChevronsUpDown, ArrowRight } from 'lucide-react'; // Added ArrowRight icon
+import { Check, ChevronsUpDown, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { t } from '@/utils/i18n';
 import { MOCK_CURRENT_DATE } from '@/context/DataContext';
@@ -35,8 +35,8 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     saveItem,
     updateStockFromOrder,
     showAlertModal,
-    setProducts, // Needed to update product stock directly
-    getNextId, // Needed for new product movement ID
+    setProducts,
+    getNextId,
   } = useData();
   const isEdit = orderId !== undefined;
 
@@ -46,16 +46,16 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
 
   const mainWarehouse = useMemo(() => warehouses.find(w => w.type === 'Main'), [warehouses]);
 
-  // State to control which product combobox is open in the order items list
   const [openComboboxIndex, setOpenComboboxIndex] = useState<number | null>(null); 
 
-  // Initialize order state once, or when orderId changes for editing
   const [order, setOrder] = useState<Partial<SellOrder>>(() => {
     if (isEdit && orderId !== undefined) {
       const existingOrder = sellOrders.find(o => o.id === orderId);
       if (existingOrder) return existingOrder;
     }
+    // For new orders, generate an ID immediately
     return {
+      id: getNextId('sellOrders'), // Pre-generate ID for new orders
       orderDate: MOCK_CURRENT_DATE.toISOString().slice(0, 10),
       status: 'Draft',
       vatPercent: settings.defaultVat,
@@ -63,7 +63,6 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     };
   });
 
-  // Initialize order items state once, or when orderId changes for editing
   const [orderItems, setOrderItems] = useState<SellOrderItemState[]>(() => {
     if (isEdit && orderId !== undefined) {
       const existingOrder = sellOrders.find(o => o.id === orderId);
@@ -76,7 +75,6 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     return [{ productId: '', qty: 1, price: 0 }];
   });
 
-  // Update order and orderItems if orderId changes (e.g., when opening a new edit form)
   useEffect(() => {
     if (isEdit && orderId !== undefined) {
       const existingOrder = sellOrders.find(o => o.id === orderId);
@@ -89,8 +87,9 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
         })));
       }
     } else if (!isEdit && orderId === undefined) {
-      // Reset for new order if component is reused for new entry
+      // Reset for new order if component is reused for new entry, ensuring a new ID
       setOrder({
+        id: getNextId('sellOrders'), // Ensure new ID on reset
         orderDate: MOCK_CURRENT_DATE.toISOString().slice(0, 10),
         status: 'Draft',
         vatPercent: settings.defaultVat,
@@ -98,7 +97,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
       });
       setOrderItems([{ productId: '', qty: 1, price: 0 }]);
     }
-  }, [orderId, isEdit, sellOrders, settings.defaultVat]);
+  }, [orderId, isEdit, sellOrders, settings.defaultVat, getNextId]);
 
 
   const calculateTotalOrderValue = useCallback(() => {
@@ -145,11 +144,38 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
   }, []);
 
   const handleGenerateProductMovement = useCallback(() => {
-    if (!order.id) {
-      showAlertModal('Validation Error', 'Please save the sell order first before generating a product movement.');
+    // Ensure the order is saved before generating movement, especially for new orders
+    const orderToSave: SellOrder = {
+      ...order,
+      id: order.id || getNextId('sellOrders'), // Ensure ID is present
+      contactId: order.contactId as number,
+      warehouseId: order.warehouseId as number,
+      orderDate: order.orderDate || MOCK_CURRENT_DATE.toISOString().slice(0, 10),
+      status: order.status || 'Draft',
+      items: orderItems.filter(item => item.productId !== '' && item.qty > 0 && item.price >= 0).map(item => ({
+        productId: item.productId as number,
+        qty: item.qty,
+        price: item.price,
+      })),
+      vatPercent: order.vatPercent || 0,
+      total: order.total || 0,
+    };
+
+    // Perform validation before saving and generating movement
+    if (!orderToSave.contactId || !orderToSave.warehouseId || !orderToSave.orderDate) {
+      showAlertModal('Validation Error', 'Customer, Warehouse, and Order Date are required before generating a product movement.');
       return;
     }
-    if (order.productMovementId) {
+    if (orderToSave.items.length === 0) {
+      showAlertModal('Validation Error', 'Please add at least one valid order item with a product, quantity, and price before generating a product movement.');
+      return;
+    }
+
+    // Save the order first to ensure it's persisted and has the latest state
+    saveItem('sellOrders', orderToSave);
+    setOrder(orderToSave); // Update local state with the saved order, including its ID
+
+    if (orderToSave.productMovementId) {
       showAlertModal('Info', t('productMovementAlreadyGenerated'));
       return;
     }
@@ -157,21 +183,21 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
       showAlertModal('Error', t('mainWarehouseNotFound'));
       return;
     }
-    if (!order.warehouseId) {
+    if (!orderToSave.warehouseId) {
       showAlertModal('Validation Error', t('selectDestinationWarehouse'));
       return;
     }
-    if (mainWarehouse.id === order.warehouseId) {
+    if (mainWarehouse.id === orderToSave.warehouseId) {
       showAlertModal('Info', t('movementNotNeeded'));
       return;
     }
 
     const newMovementItems: { productId: number; quantity: number }[] = [];
-    const productsCopy: Product[] = JSON.parse(JSON.stringify(products)); // Deep copy for mutable stock
+    const productsCopy: Product[] = JSON.parse(JSON.stringify(products));
 
     for (const item of orderItems) {
       if (!item.productId || item.qty <= 0) {
-        continue; // Skip invalid items
+        continue;
       }
 
       const product = productsCopy.find(p => p.id === item.productId);
@@ -188,10 +214,9 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
 
       newMovementItems.push({ productId: item.productId as number, quantity: item.qty });
 
-      // Tentatively update stock in the copy
       if (!product.stock) product.stock = {};
       product.stock[mainWarehouse.id] = sourceStock - item.qty;
-      product.stock[order.warehouseId as number] = (product.stock[order.warehouseId as number] || 0) + item.qty;
+      product.stock[orderToSave.warehouseId as number] = (product.stock[orderToSave.warehouseId as number] || 0) + item.qty;
     }
 
     if (newMovementItems.length === 0) {
@@ -199,29 +224,26 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
       return;
     }
 
-    // If all checks pass, update the actual products state
     setProducts(productsCopy);
 
-    // Generate ID once and use it consistently
     const newMovementId = getNextId('productMovements');
     const newMovement: ProductMovement = {
       id: newMovementId,
       sourceWarehouseId: mainWarehouse.id,
-      destWarehouseId: order.warehouseId as number,
+      destWarehouseId: orderToSave.warehouseId as number,
       items: newMovementItems,
       date: MOCK_CURRENT_DATE.toISOString().slice(0, 10),
     };
 
     saveItem('productMovements', newMovement);
     
-    // Update the sell order with the new productMovementId
     setOrder(prev => {
       const updatedOrder = { ...prev, productMovementId: newMovementId };
-      saveItem('sellOrders', updatedOrder); // Save the updated sell order
+      saveItem('sellOrders', updatedOrder);
       return updatedOrder;
     });
 
-    toast.success(t('success'), { description: `Product Movement #${newMovementId} generated successfully from ${mainWarehouse.name} to ${warehouseMap[order.warehouseId as number]?.name}.` });
+    toast.success(t('success'), { description: `Product Movement #${newMovementId} generated successfully from ${mainWarehouse.name} to ${warehouseMap[orderToSave.warehouseId as number]?.name}.` });
 
   }, [order, orderItems, products, mainWarehouse, showAlertModal, setProducts, getNextId, saveItem, warehouseMap]);
 
@@ -240,7 +262,6 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
       return;
     }
 
-    // Stock validation for sell order (only if status is Shipped)
     if (order.status === 'Shipped') {
       const productsInWarehouses: { [warehouseId: number]: { [productId: number]: number } } = {};
       products.forEach(p => {
@@ -264,7 +285,6 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
 
         let availableStock = productsInWarehouses[warehouseId]?.[productId] || 0;
 
-        // If editing, add back the quantity from the old order for this product in this warehouse
         if (isEdit && currentOrderWarehouseId === warehouseId) {
           const oldItem = currentOrderItems.find(old => old.productId === productId);
           if (oldItem) {
@@ -288,10 +308,10 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
 
     const orderToSave: SellOrder = {
       ...order,
-      id: order.id || 0,
+      id: order.id || getNextId('sellOrders'), // Ensure ID is present even if not pre-generated
       contactId: order.contactId as number,
       warehouseId: order.warehouseId as number,
-      orderDate: order.orderDate,
+      orderDate: order.orderDate || MOCK_CURRENT_DATE.toISOString().slice(0, 10),
       status: order.status || 'Draft',
       items: finalOrderItems,
       vatPercent: order.vatPercent || 0,
@@ -306,7 +326,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     toast.success(t('success'), { description: `Sell Order #${orderToSave.id || 'new'} saved successfully.` });
   };
 
-  const isGenerateMovementDisabled = !order.id || !!order.productMovementId;
+  const isGenerateMovementDisabled = !!order.productMovementId; // Only disabled if a movement is already linked
 
   return (
     <form onSubmit={handleSubmit}>
@@ -405,7 +425,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
                       {products.map((product) => (
                         <CommandItem
                           key={product.id}
-                          value={`${product.name} ${product.sku}`} // Searchable value
+                          value={`${product.name} ${product.sku}`}
                           onSelect={() => {
                             handleOrderItemChange(index, 'productId', product.id);
                             setOpenComboboxIndex(null);
