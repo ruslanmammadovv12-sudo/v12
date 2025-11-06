@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react'; // Added useEffect
 import { useData, ProductMovement, Product } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,11 @@ const ProductMovement: React.FC = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedMovementDetails, setSelectedMovementDetails] = useState<ProductMovement | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'date', direction: 'descending' });
+
+  // Log productMovements whenever it changes
+  useEffect(() => {
+    console.log("[ProductMovement Page] productMovements updated:", productMovements);
+  }, [productMovements]);
 
   const warehouseMap = useMemo(() => {
     return warehouses.reduce((acc, w) => ({ ...acc, [w.id]: w.name }), {} as { [key: number]: string });

@@ -285,11 +285,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
+    let updatedItems;
     if (item.id) {
-      setter(currentItems.map(i => i.id === item.id ? item : i));
+      updatedItems = currentItems.map(i => i.id === item.id ? item : i);
     } else {
-      setter([...currentItems, { ...item, id: getNextId(key) }]);
+      updatedItems = [...currentItems, { ...item, id: getNextId(key) }];
     }
+    
+    if (key === 'productMovements') {
+      console.log(`[DataContext] Saving product movement. Before:`, currentItems.length, `After:`, updatedItems.length, `New item ID:`, item.id || getNextId(key));
+      console.log(`[DataContext] Updated productMovements array:`, updatedItems);
+    }
+
+    setter(updatedItems);
     sonnerToast.success(t('success'), { description: `${t('detailsUpdated')}` });
   }, [products, setProducts, suppliers, setSuppliers, customers, setCustomers, warehouses, setWarehouses, purchaseOrders, setPurchaseOrders, sellOrders, setSellOrders, incomingPayments, setIncomingPayments, outgoingPayments, setOutgoingPayments, productMovements, setProductMovements, getNextId, showAlertModal]);
 
