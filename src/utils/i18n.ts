@@ -62,12 +62,13 @@ const i18n = {
     allProducts: 'All Products',
     allCustomers: 'All Customers',
     confirmation: 'Confirmation',
-    areYouSure: 'Are you sure you want to delete this item?',
+    areYouSure: 'Are You Sure?',
     productSubtotalNative: 'Product Subtotal (Native)',
     stockAvailable: 'Stock Available',
     exportDataToExcel: 'Export Data to Excel',
     export: 'Export',
     noProductsToAnalyze: 'No products to analyze for this period.',
+    cancel: 'Cancel', // Added missing translation key
   }
 };
 
