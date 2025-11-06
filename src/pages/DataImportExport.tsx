@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download } from 'lucide-react'; // Removed Upload icon
+import { Download } from 'lucide-react';
 
 const DataImportExport: React.FC = () => {
   const {
@@ -127,10 +127,6 @@ const DataImportExport: React.FC = () => {
             file:bg-sky-50 file:text-sky-700
             hover:file:bg-sky-100 dark:file:bg-slate-700 dark:file:text-slate-200 dark:hover:file:bg-slate-600"
           />
-          <Button type="button" onClick={() => document.getElementById('import-file')?.click()} variant="outline">
-            {/* Removed Upload icon */}
-            {t('chooseJsonFile')}
-          </Button>
         </div>
       </div>
     </div>
