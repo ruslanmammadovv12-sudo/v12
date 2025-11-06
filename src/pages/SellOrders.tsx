@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useData, SellOrder, Product, Customer, Warehouse } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
@@ -276,7 +276,7 @@ const SellOrders: React.FC = () => {
                       <TableCell className="p-2">{product?.name || 'N/A'}</TableCell>
                       <TableCell className="p-2">{item.qty}</TableCell>
                       <TableCell className="p-2">{item.price?.toFixed(2)} AZN</TableCell>
-                      <TableCell className="p-2">{itemTotal.toFixed(2)} AZN</TableCell>
+                      <TableCell className="p-2">{itemTotal.toFixed(2)} AZN}</TableCell>
                     </TableRow>
                   );
                 })}
