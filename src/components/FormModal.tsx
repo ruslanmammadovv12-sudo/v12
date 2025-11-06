@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+// The X icon and Button import are no longer needed for the custom close button
+// import { Button } from '@/components/ui/button';
+// import { X } from 'lucide-react';
 
 interface FormModalProps {
   isOpen: boolean;
@@ -24,9 +25,7 @@ const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, children,
         <div className="py-4">
           {children}
         </div>
-        <Button variant="ghost" size="icon" className="absolute right-4 top-4" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        {/* Removed the custom close button, relying on the default one provided by DialogContent */}
       </DialogContent>
     </Dialog>
   );
