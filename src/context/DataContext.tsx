@@ -44,6 +44,7 @@ export interface Warehouse {
   id: number;
   name: string;
   location: string;
+  type: 'Main' | 'Secondary'; // Added type field
 }
 
 export interface OrderItem {
@@ -120,7 +121,10 @@ export interface Settings {
 const initialCurrencyRates: CurrencyRates = { 'USD': 1.70, 'EUR': 2.00, 'RUB': 0.019, 'AZN': 1.00 };
 
 const initialData = {
-  warehouses: [{ id: 1, name: 'Main Warehouse', location: 'Baku, Azerbaijan' }, { id: 2, name: 'Secondary Hub', location: 'Ganja, Azerbaijan' }],
+  warehouses: [
+    { id: 1, name: 'Main Warehouse', location: 'Baku, Azerbaijan', type: 'Main' },
+    { id: 2, name: 'Secondary Hub', location: 'Ganja, Azerbaijan', type: 'Secondary' }
+  ],
   products: [
     { id: 1, name: 'Laptop Pro 15"', sku: 'LP15-PRO', category: 'Electronics', description: 'High-end professional laptop', stock: { 1: 50, 2: 20 }, minStock: 10, averageLandedCost: 1200.00, imageUrl: '' },
     { id: 2, name: 'Wireless Mouse', sku: 'WM-001', category: 'Accessories', description: 'Ergonomic wireless mouse', stock: { 1: 150, 2: 75 }, minStock: 25, averageLandedCost: 8.50, imageUrl: '' },
@@ -272,13 +276,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       default: return;
     }
 
+    // Specific validation for warehouses
+    if (key === 'warehouses' && item.type === 'Main') {
+      const existingMainWarehouse = currentItems.find((w: Warehouse) => w.type === 'Main' && w.id !== item.id);
+      if (existingMainWarehouse) {
+        showAlertModal(t('validationError'), t('onlyOneMainWarehouse'));
+        return;
+      }
+    }
+
     if (item.id) {
       setter(currentItems.map(i => i.id === item.id ? item : i));
     } else {
       setter([...currentItems, { ...item, id: getNextId(key) }]);
     }
     sonnerToast.success(t('success'), { description: `${t('detailsUpdated')}` });
-  }, [products, setProducts, suppliers, setSuppliers, customers, setCustomers, warehouses, setWarehouses, purchaseOrders, setPurchaseOrders, sellOrders, setSellOrders, incomingPayments, setIncomingPayments, outgoingPayments, setOutgoingPayments, productMovements, setProductMovements, getNextId]);
+  }, [products, setProducts, suppliers, setSuppliers, customers, setCustomers, warehouses, setWarehouses, purchaseOrders, setPurchaseOrders, sellOrders, setSellOrders, incomingPayments, setIncomingPayments, outgoingPayments, setOutgoingPayments, productMovements, setProductMovements, getNextId, showAlertModal]);
 
   const deleteItem = useCallback((key: keyof typeof initialData, id: number) => {
     const onConfirmDelete = () => {
@@ -313,6 +326,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       if (key === 'warehouses') {
+        const warehouseToDelete = currentItems.find((w: Warehouse) => w.id === id);
+        if (warehouseToDelete && warehouseToDelete.type === 'Main') {
+          showAlertModal('Deletion Failed', 'Cannot delete the Main Warehouse. Please designate another warehouse as Main first.');
+          return;
+        }
         if (products.some(p => p.stock && p.stock[id] && p.stock[id] > 0)) {
           showAlertModal('Deletion Failed', 'Cannot delete this warehouse because it contains stock. Please move all products first.');
           return;

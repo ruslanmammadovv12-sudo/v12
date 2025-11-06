@@ -80,6 +80,16 @@ const i18n = {
     searchProductBySku: 'Search product by name or SKU...', // New translation
     noProductFound: 'No product found.', // New translation
     generateProductMovement: 'Generate Product Movement', // New translation
+    warehouseType: 'Warehouse Type', // New translation
+    mainWarehouseType: 'Main', // New translation
+    secondaryWarehouseType: 'Secondary', // New translation
+    selectWarehouseType: 'Select Warehouse Type', // New translation
+    onlyOneMainWarehouse: 'Only one warehouse can be designated as Main. Please change the existing Main warehouse first.', // New translation
+    validationError: 'Validation Error', // New translation
+    mainWarehouseNotFound: 'Main Warehouse not found. Please ensure a warehouse of type "Main" exists.', // New translation
+    selectDestinationWarehouse: 'Please select a destination warehouse for the sell order first.', // New translation
+    movementNotNeeded: 'The sell order is already linked to the Main Warehouse. No movement needed.', // New translation
+    noValidProductsForMovement: 'No valid products in the sell order to generate a movement for.', // New translation
   }
 };
 

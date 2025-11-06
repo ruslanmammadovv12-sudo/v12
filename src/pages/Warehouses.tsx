@@ -154,6 +154,9 @@ const Warehouses: React.FC = () => {
                   <div>
                     <h2 className="2xl font-bold text-gray-800 dark:text-slate-200">{w.name}</h2>
                     <p className="text-gray-600 dark:text-slate-400">{w.location}</p>
+                    <p className="text-sm text-gray-500 dark:text-slate-400">
+                      {t('warehouseType')}: <span className="font-medium">{t(w.type.toLowerCase() + 'WarehouseType' as keyof typeof t)}</span>
+                    </p>
                   </div>
                   <div className="flex items-center">
                     <Button variant="link" onClick={(e) => { e.stopPropagation(); handleEditWarehouse(w.id); }} className="mr-4 text-sm p-0 h-auto">
@@ -217,7 +220,7 @@ const Warehouses: React.FC = () => {
                         <TableRow className="bg-gray-100 dark:bg-slate-700 font-bold">
                           <TableCell colSpan={6} className="p-2 text-right">{t('totals')}:</TableCell>
                           <TableCell className="p-2">{warehouseTotalValue.toFixed(2)} AZN</TableCell>
-                          <TableCell className="p-2 text-sky-600 dark:text-sky-400">{warehouseTotalValueInclVat.toFixed(2)} AZN</TableCell>
+                          <TableCell className="p-2 text-sky-600 dark:text-sky-400">{warehouseTotalValueInclVat.toFixed(2)} AZN}</TableCell>
                         </TableRow>
                       </TableFooter>
                     </Table>

@@ -48,7 +48,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
   const productMap = useMemo(() => products.reduce((acc, p) => ({ ...acc, [p.id]: p }), {} as { [key: number]: Product }), [products]);
   const warehouseMap = useMemo(() => warehouses.reduce((acc, w) => ({ ...acc, [w.id]: w }), {} as { [key: number]: Warehouse }), [warehouses]);
 
-  const mainWarehouse = useMemo(() => warehouses.find(w => w.name === 'Main Warehouse'), [warehouses]);
+  const mainWarehouse = useMemo(() => warehouses.find(w => w.type === 'Main'), [warehouses]);
 
   useEffect(() => {
     if (isEdit) {
@@ -117,15 +117,15 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
 
   const handleGenerateProductMovement = useCallback(() => {
     if (!mainWarehouse) {
-      showAlertModal('Error', 'Main Warehouse not found. Please ensure a warehouse named "Main Warehouse" exists.');
+      showAlertModal('Error', t('mainWarehouseNotFound'));
       return;
     }
     if (!order.warehouseId) {
-      showAlertModal('Validation Error', 'Please select a destination warehouse for the sell order first.');
+      showAlertModal('Validation Error', t('selectDestinationWarehouse'));
       return;
     }
     if (mainWarehouse.id === order.warehouseId) {
-      showAlertModal('Info', 'The sell order is already linked to the Main Warehouse. No movement needed.');
+      showAlertModal('Info', t('movementNotNeeded'));
       return;
     }
 
@@ -145,7 +145,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
 
       const sourceStock = product.stock?.[mainWarehouse.id] || 0;
       if (sourceStock < item.qty) {
-        showAlertModal('Stock Error', `${t('notEnoughStock')} ${product.name} (${product.sku}) in Main Warehouse. ${t('available')}: ${sourceStock}, ${t('requested')}: ${item.qty}.`);
+        showAlertModal('Stock Error', `${t('notEnoughStock')} ${product.name} (${product.sku}) in ${mainWarehouse.name}. ${t('available')}: ${sourceStock}, ${t('requested')}: ${item.qty}.`);
         return;
       }
 
@@ -158,7 +158,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     }
 
     if (newMovementItems.length === 0) {
-      showAlertModal('Info', 'No valid products in the sell order to generate a movement for.');
+      showAlertModal('Info', t('noValidProductsForMovement'));
       return;
     }
 
@@ -174,7 +174,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     };
 
     saveItem('productMovements', newMovement);
-    toast.success(t('success'), { description: `Product Movement #${newMovement.id} generated successfully from Main Warehouse to ${warehouseMap[order.warehouseId as number]?.name}.` });
+    toast.success(t('success'), { description: `Product Movement #${newMovement.id} generated successfully from ${mainWarehouse.name} to ${warehouseMap[order.warehouseId as number]?.name}.` });
 
   }, [mainWarehouse, order.warehouseId, orderItems, products, showAlertModal, setProducts, getNextId, saveItem, warehouseMap]);
 
