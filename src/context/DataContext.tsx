@@ -364,6 +364,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (key === 'productMovements') {
         const movementToDelete = currentItems.find(m => m.id === id);
         if (movementToDelete) {
+          // Find the linked sell order and clear its productMovementId
+          setSellOrders(prevSellOrders => prevSellOrders.map(so => 
+            so.productMovementId === movementToDelete.id 
+              ? { ...so, productMovementId: undefined } 
+              : so
+          ));
+
           const updatedProducts = products.map(p => {
             if (p.stock && movementToDelete.items?.some(item => item.productId === p.id)) {
               const newP = { ...p, stock: { ...p.stock } };
