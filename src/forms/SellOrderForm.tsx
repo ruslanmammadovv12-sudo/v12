@@ -46,6 +46,9 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
 
   const mainWarehouse = useMemo(() => warehouses.find(w => w.type === 'Main'), [warehouses]);
 
+  // State to control which product combobox is open in the order items list
+  const [openComboboxIndex, setOpenComboboxIndex] = useState<number | null>(null); 
+
   // Initialize order state once, or when orderId changes for editing
   const [order, setOrder] = useState<Partial<SellOrder>>(() => {
     if (isEdit && orderId !== undefined) {
