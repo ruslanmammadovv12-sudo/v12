@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useRef } from 'react'; // Import useRef
 import { useData } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download } from 'lucide-react';
+import { Download, UploadCloud } from 'lucide-react'; // Add UploadCloud icon
 
 const DataImportExport: React.FC = () => {
   const {
@@ -18,6 +18,8 @@ const DataImportExport: React.FC = () => {
     setSettings,
     showConfirmationModal,
   } = useData();
+
+  const fileInputRef = useRef<HTMLInputElement>(null); // Create a ref for the hidden file input
 
   const handleExportData = () => {
     const dataToExport = {
@@ -44,6 +46,10 @@ const DataImportExport: React.FC = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success(t('success'), { description: t('backupData') + ' exported successfully to JSON.' });
+  };
+
+  const handleImportButtonClick = () => {
+    fileInputRef.current?.click(); // Trigger the hidden file input click
   };
 
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,19 +120,20 @@ const DataImportExport: React.FC = () => {
           {t('restoreWarning')}
         </p>
         <div className="flex items-center space-x-4">
-          <Label htmlFor="import-file" className="sr-only">{t('chooseJsonFile')}</Label>
+          {/* Hidden file input */}
           <Input
             id="import-file"
             type="file"
             accept=".json"
             onChange={handleImportData}
-            className="block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded-md file:border-0
-            file:text-sm file:font-semibold
-            file:bg-sky-50 file:text-sky-700
-            hover:file:bg-sky-100 dark:file:bg-slate-700 dark:file:text-slate-200 dark:hover:file:bg-slate-600"
+            ref={fileInputRef}
+            className="hidden" // Hide the input visually
           />
+          {/* Styled button to trigger the hidden file input */}
+          <Button onClick={handleImportButtonClick} className="bg-sky-500 hover:bg-sky-600 text-white">
+            <UploadCloud className="w-4 h-4 mr-2" />
+            {t('import')}
+          </Button>
         </div>
       </div>
     </div>
