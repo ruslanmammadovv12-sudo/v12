@@ -72,28 +72,36 @@ const SettingsPage: React.FC = () => {
     // The MainLayout useEffect will handle applying the class to document.documentElement
   };
 
+  const performEraseAllData = () => {
+    // Clear all local storage items used by the app
+    localStorage.removeItem('products');
+    localStorage.removeItem('suppliers');
+    localStorage.removeItem('customers');
+    localStorage.removeItem('warehouses');
+    localStorage.removeItem('purchaseOrders');
+    localStorage.removeItem('sellOrders');
+    localStorage.removeItem('incomingPayments');
+    localStorage.removeItem('outgoingPayments');
+    localStorage.removeItem('productMovements');
+    localStorage.removeItem('settings');
+    localStorage.removeItem('currencyRates');
+    localStorage.removeItem('nextIds');
+    localStorage.removeItem('initialized'); // Reset initialization flag
+
+    toast.success(t('success'), { description: t('allDataErased') });
+    setTimeout(() => window.location.reload(), 1000); // Reload to re-initialize with default data
+  };
+
   const handleEraseAllData = () => {
     showConfirmationModal(
       t('eraseAllData'),
       t('eraseAllDataWarning'),
       () => {
-        // Clear all local storage items used by the app
-        localStorage.removeItem('products');
-        localStorage.removeItem('suppliers');
-        localStorage.removeItem('customers');
-        localStorage.removeItem('warehouses');
-        localStorage.removeItem('purchaseOrders');
-        localStorage.removeItem('sellOrders');
-        localStorage.removeItem('incomingPayments');
-        localStorage.removeItem('outgoingPayments');
-        localStorage.removeItem('productMovements');
-        localStorage.removeItem('settings');
-        localStorage.removeItem('currencyRates');
-        localStorage.removeItem('nextIds');
-        localStorage.removeItem('initialized'); // Reset initialization flag
-
-        toast.success(t('success'), { description: t('allDataErased') });
-        setTimeout(() => window.location.reload(), 1000); // Reload to re-initialize with default data
+        showConfirmationModal(
+          t('eraseAllData'),
+          t('eraseAllData100PercentSure'),
+          performEraseAllData
+        );
       }
     );
   };

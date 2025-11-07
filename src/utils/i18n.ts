@@ -129,6 +129,7 @@ const i18n = {
     eraseAllData: 'Erase All Data',
     eraseAllDataDescription: 'This action will permanently delete ALL application data stored locally and reset the application to its initial state. This cannot be undone.',
     eraseAllDataWarning: 'Are you absolutely sure you want to erase all data? This action is irreversible and will reset the application to its default state.',
+    eraseAllData100PercentSure: 'Are you 100% sure? This action is irreversible.', // New translation
     allDataErased: 'All application data has been erased.',
   }
 };
