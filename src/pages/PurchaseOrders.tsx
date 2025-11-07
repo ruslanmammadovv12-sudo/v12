@@ -81,16 +81,42 @@ const PurchaseOrders: React.FC = () => {
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
         const key = sortConfig.key;
-        const valA = a[key] === undefined ? '' : a[key];
-        const valB = b[key] === undefined ? '' : b[key];
+        let valA: any = a[key];
+        let valB: any = b[key];
+
+        // Handle undefined/null values by treating them as empty strings or 0 for numbers
+        if (valA === undefined || valA === null) valA = (key === 'id' || key === 'totalItems' || key === 'totalValueNative') ? 0 : '';
+        if (valB === undefined || valB === null) valB = (key === 'id' || key === 'totalItems' || key === 'totalValueNative') ? 0 : '';
 
         let comparison = 0;
-        if (typeof valA === 'string' || typeof valB === 'string') {
-          comparison = String(valA).localeCompare(String(valB), undefined, { numeric: true, sensitivity: 'base' });
-        } else {
-          if (valA < valB) comparison = -1;
-          if (valA > valB) comparison = 1;
+
+        switch (key) {
+          case 'id':
+          case 'totalItems':
+          case 'totalValueNative':
+            comparison = (valA as number) - (valB as number);
+            break;
+          case 'orderDate':
+            comparison = new Date(valA).getTime() - new Date(valB).getTime();
+            break;
+          case 'supplierName':
+          case 'warehouseName':
+          case 'status':
+            comparison = String(valA).localeCompare(String(valB));
+            break;
+          default:
+            // Fallback for other potential string/numeric fields
+            if (typeof valA === 'string' && typeof valB === 'string') {
+              comparison = valA.localeCompare(valB);
+            } else if (typeof valA === 'number' && typeof valB === 'number') {
+              comparison = valA - valB;
+            } else {
+              // Attempt a generic string comparison if types are mixed or unknown
+              comparison = String(valA).localeCompare(String(valB));
+            }
+            break;
         }
+
         return sortConfig.direction === 'ascending' ? comparison : -comparison;
       });
     }
@@ -124,6 +150,14 @@ const PurchaseOrders: React.FC = () => {
     } else {
       showAlertModal('Error', 'Order details not found.');
     }
+  };
+
+  const requestSort = (key: SortConfig['key']) => {
+    let direction: SortConfig['direction'] = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
   };
 
   const getSortIndicator = (key: SortConfig['key']) => {
@@ -287,7 +321,7 @@ const PurchaseOrders: React.FC = () => {
               <TableFooter>
                 {/* Recalculate for display in native currency for consistency with form */}
                 {(() => {
-                  const productsSubtotalNative = selectedOrderDetails.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
+                  const productsSubtotalNative = selectedOrderDetails.items?.reduce((sum, item) => sum + (item.price * item.qty), 0) || 0;
                   const orderNativeToAznRate = selectedOrderDetails.currency === 'AZN' ? 1 : (selectedOrderDetails.exchangeRate || currencyRates[selectedOrderDetails.currency] || 1);
 
                   const convertFeeToOrderNativeCurrency = (amount: number, feeCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB') => {
@@ -327,7 +361,7 @@ const PurchaseOrders: React.FC = () => {
                       </TableRow>
                       <TableRow className="bg-gray-200 dark:bg-slate-600 font-bold">
                         <TableCell colSpan={4} className="p-2 text-right">{t('totalLandedCost')} (AZN):</TableCell>
-                        <TableCell className="p-2 text-sky-600 dark:text-sky-400">{selectedOrderDetails.total.toFixed(2)} AZN</TableCell>
+                        <TableCell className="p-2 text-sky-600 dark:text-sky-400">{selectedOrderDetails.total.toFixed(2)} AZN}</TableCell>
                       </TableRow>
                     </>
                   );
