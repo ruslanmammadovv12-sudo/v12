@@ -74,7 +74,7 @@ const ExcelImportButton: React.FC<ExcelImportButtonProps> = ({ onImport, label, 
           ref={fileInputRef}
           className="hidden"
         />
-        <Button onClick={() => fileInputRef.current?.click()} className="bg-sky-500 hover:bg-sky-600 text-white">
+        <Button onClick={() => document.getElementById(`excel-import-${label.replace(/\s/g, '-')}`)?.click()} className="bg-sky-500 hover:bg-sky-600 text-white w-full"> {/* Added w-full */}
           <UploadCloud className="w-4 h-4 mr-2" />
           {t('importExcelFile')}
         </Button>

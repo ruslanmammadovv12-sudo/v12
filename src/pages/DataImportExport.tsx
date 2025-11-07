@@ -166,7 +166,7 @@ const DataImportExport: React.FC = () => {
         <p className="text-gray-600 dark:text-slate-400 mb-4">
           {t('exportDataToJson')}
         </p>
-        <Button onClick={handleExportData} className="bg-sky-500 hover:bg-sky-600 text-white">
+        <Button onClick={handleExportData} className="bg-sky-500 hover:bg-sky-600 text-white w-full mb-4">
           <Download className="w-4 h-4 mr-2" />
           {t('exportJsonFile')}
         </Button>
@@ -174,7 +174,7 @@ const DataImportExport: React.FC = () => {
           <p className="text-gray-600 dark:text-slate-400 mb-4">
             {t('restoreWarning')}
           </p>
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col space-y-4"> {/* Changed to flex-col and space-y */}
             <Input
               id="import-file"
               type="file"
@@ -183,7 +183,7 @@ const DataImportExport: React.FC = () => {
               ref={fileInputRef}
               className="hidden"
             />
-            <Button onClick={handleImportButtonClick} className="bg-sky-500 hover:bg-sky-600 text-white">
+            <Button onClick={handleImportButtonClick} className="bg-sky-500 hover:bg-sky-600 text-white w-full"> {/* Added w-full */}
               <UploadCloud className="w-4 h-4 mr-2" />
               {t('importJsonFile')}
             </Button>

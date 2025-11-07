@@ -52,7 +52,7 @@ const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
       <p className="text-gray-600 dark:text-slate-400 mb-4">
         {description}
       </p>
-      <Button onClick={handleExport} className="bg-sky-500 hover:bg-sky-600 text-white">
+      <Button onClick={handleExport} className="bg-sky-500 hover:bg-sky-600 text-white w-full"> {/* Added w-full */}
         <Download className="w-4 h-4 mr-2" />
         {t('exportExcelFile')}
       </Button>
