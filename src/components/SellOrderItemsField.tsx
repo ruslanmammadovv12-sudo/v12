@@ -44,18 +44,18 @@ const SellOrderItemsField: React.FC<SellOrderItemsFieldProps> = ({
   return (
     <>
       <h3 className="font-semibold mt-4 mb-2 text-gray-700 dark:text-slate-200">{t('orderItems')}</h3>
-      <div className="grid grid-cols-14 gap-2 mb-2 items-center text-sm font-medium text-gray-700 dark:text-slate-300">
+      <div className="grid grid-cols-12 gap-2 mb-2 items-center text-sm font-medium text-gray-700 dark:text-slate-300">
         <Label className="col-span-3">{t('product')}</Label>
-        <Label className="col-span-2">{t('qty')}</Label>
+        <Label className="col-span-1">{t('qty')}</Label>
         <Label className="col-span-2">{t('price')}</Label>
         <Label className="col-span-2">{t('itemTotal')}</Label>
         <Label className="col-span-2">{t('landedCost')}</Label> {/* New column header */}
-        <Label className="col-span-2">{t('cleanProfit')}</Label>
+        <Label className="col-span-1">{t('cleanProfit')}</Label>
         <Label className="col-span-1"></Label>
       </div>
       <div id="order-items">
         {orderItems.map((item, index) => (
-          <div key={index} className="grid grid-cols-14 gap-2 mb-2 items-center">
+          <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
             <Popover open={openComboboxIndex === index} onOpenChange={(open) => setOpenComboboxIndex(open ? index : null)}>
               <PopoverTrigger asChild>
                 <Button
@@ -101,7 +101,7 @@ const SellOrderItemsField: React.FC<SellOrderItemsFieldProps> = ({
               type="text"
               value={item.qty}
               onChange={(e) => handleOrderItemChange(index, 'qty', e.target.value)}
-              className="col-span-2"
+              className="col-span-1"
             />
             <Input
               type="text"
@@ -127,7 +127,7 @@ const SellOrderItemsField: React.FC<SellOrderItemsFieldProps> = ({
               type="text"
               value={item.cleanProfit !== undefined ? item.cleanProfit.toFixed(2) : '0.00'}
               readOnly
-              className="col-span-2 bg-gray-50 dark:bg-slate-700"
+              className="col-span-1 bg-gray-50 dark:bg-slate-700"
             />
             <Button
               type="button"
