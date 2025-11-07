@@ -45,6 +45,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
   const [orderItems, setOrderItems] = useState<PurchaseOrderItemState[]>([{ productId: '', qty: 1, price: 0 }]);
   const [selectedCurrency, setSelectedCurrency] = useState<'AZN' | 'USD' | 'EUR' | 'RUB'>('AZN');
   const [manualExchangeRate, setManualExchangeRate] = useState<number | undefined>(undefined);
+  const [manualExchangeRateInput, setManualExchangeRateInput] = useState<string>(''); // New state for input string
   const [openComboboxIndex, setOpenComboboxIndex] = useState<number | null>(null); // State for which product combobox is open
 
   const supplierMap = useMemo(() => suppliers.reduce((acc, s) => ({ ...acc, [s.id]: s }), {} as { [key: number]: Supplier }), [suppliers]);
@@ -64,6 +65,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
         })));
         setSelectedCurrency(existingOrder.currency);
         setManualExchangeRate(existingOrder.exchangeRate);
+        setManualExchangeRateInput(existingOrder.exchangeRate !== undefined ? String(existingOrder.exchangeRate) : ''); // Initialize input string
       }
     } else {
       setOrder({
@@ -81,6 +83,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
       setOrderItems([{ productId: '', qty: 1, price: 0 }]);
       setSelectedCurrency('AZN');
       setManualExchangeRate(undefined);
+      setManualExchangeRateInput(''); // Reset for new orders
     }
   }, [orderId, isEdit, purchaseOrders, products]);
 
@@ -176,12 +179,23 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
     setOrder(prev => ({ ...prev, currency: value }));
     if (value === 'AZN') {
       setManualExchangeRate(undefined);
+      setManualExchangeRateInput(''); // Clear input string for AZN
+    } else {
+      // Set default rate or existing rate when switching to foreign currency
+      const defaultRate = currencyRates[value];
+      setManualExchangeRate(defaultRate);
+      setManualExchangeRateInput(String(defaultRate));
     }
   };
 
   const handleExchangeRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    setManualExchangeRate(isNaN(value) ? undefined : value);
+    const inputValue = e.target.value;
+    // Allow empty string, or a string that looks like a number (e.g., "2.", "2.0", "2.01")
+    if (inputValue === '' || /^-?\d*\.?\d*$/.test(inputValue)) {
+      setManualExchangeRateInput(inputValue); // Update the input's displayed value
+      const parsedValue = parseFloat(inputValue);
+      setManualExchangeRate(isNaN(parsedValue) ? undefined : parsedValue);
+    }
   };
 
   const addOrderItem = useCallback(() => {
@@ -333,9 +347,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
             <div className="col-span-3">
               <Input
                 id="exchangeRate"
-                type="number"
-                step="0.0001"
-                value={manualExchangeRate !== undefined ? String(manualExchangeRate) : ''}
+                type="text" // Changed to text
+                value={manualExchangeRateInput} // Use the string state for the input
                 onChange={handleExchangeRateChange}
                 placeholder={t('exchangeRatePlaceholder')}
                 className="mb-1"
