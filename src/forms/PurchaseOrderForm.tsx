@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useData, PurchaseOrder, Product, Supplier, Warehouse, OrderItem } from '@/context/DataContext';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Label } => '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -547,8 +547,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
           <Label className="text-right text-lg font-bold">{t('total')}</Label>
           <Input
             id="total"
-            type="number"
-            value={order.total?.toFixed(2) || '0.00'}
+            type="text"
+            value={`${order.total?.toFixed(2) || '0.00'} ${selectedCurrency}`}
             readOnly
             className="col-span-3 font-bold text-lg bg-gray-50 dark:bg-slate-700"
           />
