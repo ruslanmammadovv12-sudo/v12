@@ -33,6 +33,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     products, // Passed to SellOrderItemsField
     customers, // Passed to Select
     warehouses, // Passed to Select
+    productMap, // <--- Added productMap here
   } = useSellOrderForm({ orderId, onSuccess });
 
   return (
