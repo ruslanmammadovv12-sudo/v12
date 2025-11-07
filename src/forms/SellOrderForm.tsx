@@ -402,16 +402,23 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
         </div>
 
         <h3 className="font-semibold mt-4 mb-2 text-gray-700 dark:text-slate-200">{t('orderItems')}</h3>
+        <div className="grid grid-cols-11 gap-2 mb-2 items-center text-sm font-medium text-gray-700 dark:text-slate-300">
+          <Label className="col-span-4">{t('product')}</Label>
+          <Label className="col-span-2">{t('qty')}</Label>
+          <Label className="col-span-2">{t('price')}</Label>
+          <Label className="col-span-2">{t('total')}</Label> {/* New Total Label */}
+          <Label className="col-span-1"></Label> {/* For delete button */}
+        </div>
         <div id="order-items">
           {orderItems.map((item, index) => (
-            <div key={index} className="grid grid-cols-10 gap-2 mb-2 items-center">
+            <div key={index} className="grid grid-cols-11 gap-2 mb-2 items-center">
               <Popover open={openComboboxIndex === index} onOpenChange={(open) => setOpenComboboxIndex(open ? index : null)}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     role="combobox"
                     aria-expanded={openComboboxIndex === index}
-                    className="col-span-5 justify-between"
+                    className="col-span-4 justify-between"
                   >
                     {item.productId
                       ? productMap[item.productId]?.name || t('selectProduct')
@@ -460,6 +467,12 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
                 onChange={(e) => handleOrderItemChange(index, 'price', parseFloat(e.target.value) || 0)}
                 className="col-span-2"
                 min="0"
+              />
+              <Input
+                type="text"
+                value={((item.qty || 0) * (item.price || 0)).toFixed(2)}
+                readOnly
+                className="col-span-2 bg-gray-50 dark:bg-slate-700"
               />
               <Button
                 type="button"
