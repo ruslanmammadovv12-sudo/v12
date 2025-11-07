@@ -7,13 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import FormModal from '@/components/FormModal';
 import SellOrderForm from '@/forms/SellOrderForm';
-import { PlusCircle, Eye, Check, ChevronsUpDown } from 'lucide-react';
+import { PlusCircle, Eye } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
 
 type SortConfig = {
   key: keyof SellOrder | 'customerName' | 'warehouseName' | 'totalItems' | 'totalValueAZN' | 'paymentStatus';
@@ -21,19 +16,11 @@ type SortConfig = {
 };
 
 const SellOrders: React.FC = () => {
-  const { sellOrders, customers, warehouses, products, incomingPayments, productMovements, deleteItem, showAlertModal } = useData();
+  const { sellOrders, customers, warehouses, products, incomingPayments, deleteItem, showAlertModal } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState<number | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'orderDate', direction: 'descending' });
-  
-  // Filter states
-  const [fulfillmentWarehouseFilterId, setFulfillmentWarehouseFilterId] = useState<number | 'all'>('all');
-  const [internalSourceWarehouseFilterId, setInternalSourceWarehouseFilterId] = useState<number | 'all'>('all');
-  const [startDateFilter, setStartDateFilter] = useState<string>('');
-  const [endDateFilter, setEndDateFilter] = useState<string>('');
-  const [productFilterId, setProductFilterId] = useState<number | 'all'>('all');
-  const [isProductComboboxOpen, setIsProductComboboxOpen] = useState(false);
-
+  const [filterWarehouseId, setFilterWarehouseId] = useState<number | 'all'>('all');
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<SellOrder | null>(null);
 
@@ -68,10 +55,6 @@ const SellOrders: React.FC = () => {
   const productMap = useMemo(() => {
     return products.reduce((acc, p) => ({ ...acc, [p.id]: p }), {} as { [key: number]: Product });
   }, [products]);
-
-  const productMovementMap = useMemo(() => {
-    return productMovements.reduce((acc, pm) => ({ ...acc, [pm.id]: pm }), {} as { [key: number]: typeof productMovements[0] });
-  }, [productMovements]);
 
   const paymentsByOrder = useMemo(() => {
     return incomingPayments.reduce((acc, payment) => {
@@ -119,35 +102,8 @@ const SellOrders: React.FC = () => {
   const filteredAndSortedOrders = useMemo(() => {
     let filteredOrders = sellOrders;
 
-    // Fulfillment Warehouse Filter (SellOrder.warehouseId)
-    if (fulfillmentWarehouseFilterId !== 'all') {
-      filteredOrders = filteredOrders.filter(order => order.warehouseId === fulfillmentWarehouseFilterId);
-    }
-
-    // Internal Movement Source Warehouse Filter (ProductMovement.sourceWarehouseId)
-    if (internalSourceWarehouseFilterId !== 'all') {
-      filteredOrders = filteredOrders.filter(order => {
-        if (order.productMovementId) {
-          const movement = productMovementMap[order.productMovementId];
-          return movement && movement.sourceWarehouseId === internalSourceWarehouseFilterId;
-        }
-        return false; // Only filter if a movement exists
-      });
-    }
-
-    // Date Range Filter
-    if (startDateFilter) {
-      filteredOrders = filteredOrders.filter(order => order.orderDate >= startDateFilter);
-    }
-    if (endDateFilter) {
-      filteredOrders = filteredOrders.filter(order => order.orderDate <= endDateFilter);
-    }
-
-    // Product Filter
-    if (productFilterId !== 'all') {
-      filteredOrders = filteredOrders.filter(order =>
-        order.items?.some(item => item.productId === productFilterId)
-      );
+    if (filterWarehouseId !== 'all') {
+      filteredOrders = filteredOrders.filter(order => order.warehouseId === filterWarehouseId);
     }
 
     const sortableItems = filteredOrders.map(order => {
@@ -168,45 +124,21 @@ const SellOrders: React.FC = () => {
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
         const key = sortConfig.key;
-        let valA: any = a[key];
-        let valB: any = b[key];
-
-        // Handle undefined/null values by treating them as empty strings or 0 for numbers
-        if (valA === undefined || valA === null) valA = (key === 'id' || key === 'totalItems' || key === 'totalValueAZN') ? 0 : '';
-        if (valB === undefined || valB === null) valB = (key === 'id' || key === 'totalItems' || key === 'totalValueAZN') ? 0 : '';
+        const valA = a[key] === undefined ? '' : a[key];
+        const valB = b[key] === undefined ? '' : b[key];
 
         let comparison = 0;
-
-        switch (key) {
-          case 'id':
-          case 'totalItems':
-          case 'totalValueAZN':
-            comparison = (valA as number) - (valB as number);
-            break;
-          case 'orderDate':
-            comparison = new Date(valA).getTime() - new Date(valB).getTime();
-            break;
-          case 'customerName':
-          case 'warehouseName':
-          case 'status':
-          case 'paymentStatus':
-            comparison = String(valA).localeCompare(String(valB));
-            break;
-          default:
-            if (typeof valA === 'string' && typeof valB === 'string') {
-              comparison = valA.localeCompare(valB);
-            } else if (typeof valA === 'number' && typeof valB === 'number') {
-              comparison = valA - valB;
-            } else {
-              comparison = String(valA).localeCompare(String(valB));
-            }
-            break;
+        if (typeof valA === 'string' || typeof valB === 'string') {
+          comparison = String(valA).localeCompare(String(valB), undefined, { numeric: true, sensitivity: 'base' });
+        } else {
+          if (valA < valB) comparison = -1;
+          if (valA > valB) comparison = 1;
         }
         return sortConfig.direction === 'ascending' ? comparison : -comparison;
       });
     }
     return sortableItems;
-  }, [sellOrders, customerMap, warehouseMap, productMap, productMovementMap, sortConfig, fulfillmentWarehouseFilterId, internalSourceWarehouseFilterId, startDateFilter, endDateFilter, productFilterId, getPaymentStatus]);
+  }, [sellOrders, customerMap, warehouseMap, productMap, sortConfig, filterWarehouseId, getPaymentStatus]);
 
   return (
     <div className="container mx-auto p-4">
@@ -219,124 +151,23 @@ const SellOrders: React.FC = () => {
       </div>
 
       <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div>
-            <Label htmlFor="fulfillment-warehouse-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-              {t('fulfillmentWarehouse')}
-            </Label>
-            <Select onValueChange={(value) => setFulfillmentWarehouseFilterId(value === 'all' ? 'all' : parseInt(value))} value={String(fulfillmentWarehouseFilterId)}>
-              <SelectTrigger className="w-full mt-1">
-                <SelectValue placeholder={t('allWarehouses')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('allWarehouses')}</SelectItem>
-                {warehouses.map(w => (
-                  <SelectItem key={w.id} value={String(w.id)}>
-                    {w.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="internal-source-warehouse-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-              {t('internalSourceWarehouse')}
-            </Label>
-            <Select onValueChange={(value) => setInternalSourceWarehouseFilterId(value === 'all' ? 'all' : parseInt(value))} value={String(internalSourceWarehouseFilterId)}>
-              <SelectTrigger className="w-full mt-1">
-                <SelectValue placeholder={t('allWarehouses')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('allWarehouses')}</SelectItem>
-                {warehouses.map(w => (
-                  <SelectItem key={w.id} value={String(w.id)}>
-                    {w.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="product-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-              {t('product')}
-            </Label>
-            <Popover open={isProductComboboxOpen} onOpenChange={setIsProductComboboxOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={isProductComboboxOpen}
-                  className="w-full justify-between mt-1"
-                >
-                  {productFilterId !== 'all'
-                    ? productMap[productFilterId as number]?.name || t('allProducts')
-                    : t('allProducts')}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                <Command>
-                  <CommandInput placeholder={t('searchProductBySku')} />
-                  <CommandEmpty>{t('noProductFound')}</CommandEmpty>
-                  <CommandGroup>
-                    <CommandItem
-                      value="all-products"
-                      onSelect={() => {
-                        setProductFilterId('all');
-                        setIsProductComboboxOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          productFilterId === 'all' ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {t('allProducts')}
-                    </CommandItem>
-                    {products.map((product) => (
-                      <CommandItem
-                        key={product.id}
-                        value={`${product.name} ${product.sku}`}
-                        onSelect={() => {
-                          setProductFilterId(product.id);
-                          setIsProductComboboxOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            productFilterId === product.id ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {product.name} ({product.sku})
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div>
-            <Label htmlFor="start-date-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">{t('startDate')}</Label>
-            <Input
-              type="date"
-              id="start-date-filter"
-              value={startDateFilter}
-              onChange={(e) => setStartDateFilter(e.target.value)}
-              className="mt-1 w-full p-2 border rounded-md shadow-sm bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-            />
-          </div>
-          <div>
-            <Label htmlFor="end-date-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">{t('endDate')}</Label>
-            <Input
-              type="date"
-              id="end-date-filter"
-              value={endDateFilter}
-              onChange={(e) => setEndDateFilter(e.target.value)}
-              className="mt-1 w-full p-2 border rounded-md shadow-sm bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-            />
-          </div>
+        <div className="flex items-center gap-4">
+          <label htmlFor="warehouse-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
+            {t('filterByWarehouse')}
+          </label>
+          <Select onValueChange={(value) => setFilterWarehouseId(value === 'all' ? 'all' : parseInt(value))} value={String(filterWarehouseId)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder={t('allWarehouses')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allWarehouses')}</SelectItem>
+              {warehouses.map(w => (
+                <SelectItem key={w.id} value={String(w.id)}>
+                  {w.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -354,7 +185,7 @@ const SellOrders: React.FC = () => {
                 {t('orderDate')} {getSortIndicator('orderDate')}
               </TableHead>
               <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={handleSortClick('warehouseName')}>
-                {t('fulfillmentWarehouse')} {getSortIndicator('warehouseName')}
+                {t('warehouse')} {getSortIndicator('warehouseName')}
               </TableHead>
               <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={handleSortClick('status')}>
                 {t('orderStatus')} {getSortIndicator('status')}
@@ -411,7 +242,7 @@ const SellOrders: React.FC = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="p-4 text-center text-gray-500 dark:text-slate-400">
-                  {t('noItemsFound')}
+                  {filterWarehouseId !== 'all' ? t('noOrdersForWarehouse') : t('noItemsFound')}
                 </TableCell>
               </TableRow>
             )}
@@ -435,16 +266,10 @@ const SellOrders: React.FC = () => {
         {selectedOrderDetails && (
           <div className="grid gap-4 py-4 text-gray-800 dark:text-slate-300">
             <p><strong>{t('customer')}:</strong> {customerMap[selectedOrderDetails.contactId]}</p>
-            <p><strong>{t('fulfillmentWarehouse')}:</strong> {warehouseMap[selectedOrderDetails.warehouseId]}</p>
+            <p><strong>{t('warehouse')}:</strong> {warehouseMap[selectedOrderDetails.warehouseId]}</p>
             <p><strong>{t('orderDate')}:</strong> {selectedOrderDetails.orderDate}</p>
             <p><strong>{t('orderStatus')}:</strong> {t(selectedOrderDetails.status.toLowerCase() as keyof typeof t)}</p>
             <p><strong>{t('vatPercent')}:</strong> {selectedOrderDetails.vatPercent}%</p>
-            {selectedOrderDetails.productMovementId && productMovementMap[selectedOrderDetails.productMovementId] && (
-              <p>
-                <strong>{t('internalMovementSourceWarehouse')}:</strong>{' '}
-                {warehouseMap[productMovementMap[selectedOrderDetails.productMovementId].sourceWarehouseId] || 'N/A'}
-              </p>
-            )}
             <h3 className="font-semibold mt-4 mb-2">{t('orderItems')}</h3>
             <Table>
               <TableHeader>
@@ -464,7 +289,7 @@ const SellOrders: React.FC = () => {
                       <TableCell className="p-2">{product?.name || 'N/A'}</TableCell>
                       <TableCell className="p-2">{item.qty}</TableCell>
                       <TableCell className="p-2">{item.price?.toFixed(2)} AZN</TableCell>
-                      <TableCell className="p-2">{itemTotal.toFixed(2)} AZN</TableCell>
+                      <TableCell className="p-2">{itemTotal.toFixed(2)} AZN}</TableCell>
                     </TableRow>
                   );
                 })}

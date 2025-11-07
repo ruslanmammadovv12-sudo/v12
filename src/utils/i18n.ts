@@ -88,14 +88,13 @@ const i18n = {
     selectDestinationWarehouse: 'Please select a destination warehouse for the sell order first.', // New translation
     movementNotNeeded: 'The sell order is already linked to the Main Warehouse. No movement needed.', // New translation
     noValidProductsForMovement: 'No valid products in the sell order to generate a movement for.', // New translation
+    productMovementAlreadyGenerated: 'A product movement has already been generated for this sell order.', // New translation
     totalLandedCost: 'Total Landed Cost', // New translation
     paymentForProducts: 'Payment for Products', // New translation
     paymentForFees: 'Payment for Fees', // New translation
     productsTotal: 'Products Total', // New translation
     feesTotal: 'Fees Total', // New translation
     itemTotal: 'Item Total', // New translation
-    fulfillmentWarehouse: 'Fulfillment Warehouse', // New translation
-    internalSourceWarehouse: 'Internal Source Warehouse', // New translation
   }
 };
 
