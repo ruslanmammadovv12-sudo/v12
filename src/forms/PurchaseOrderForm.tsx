@@ -23,6 +23,7 @@ interface PurchaseOrderItemState {
   productId: number | '';
   qty: number;
   price: number;
+  itemTotal: number; // New field to hold the total for the item line
   currency?: 'AZN' | 'USD' | 'EUR' | 'RUB';
   landedCostPerUnit?: number;
 }
@@ -42,7 +43,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
   const isEdit = orderId !== undefined;
 
   const [order, setOrder] = useState<Partial<PurchaseOrder>>({});
-  const [orderItems, setOrderItems] = useState<PurchaseOrderItemState[]>([{ productId: '', qty: 1, price: 0 }]);
+  const [orderItems, setOrderItems] = useState<PurchaseOrderItemState[]>([{ productId: '', qty: 1, price: 0, itemTotal: 0 }]);
   const [selectedCurrency, setSelectedCurrency] = useState<'AZN' | 'USD' | 'EUR' | 'RUB'>('AZN');
   const [manualExchangeRate, setManualExchangeRate] = useState<number | undefined>(undefined);
   const [manualExchangeRateInput, setManualExchangeRateInput] = useState<string>(''); // New state for input string
@@ -60,6 +61,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
           productId: item.productId,
           qty: item.qty,
           price: item.price,
+          itemTotal: item.qty * item.price, // Calculate initial itemTotal
           currency: item.currency || existingOrder.currency,
           landedCostPerUnit: item.landedCostPerUnit,
         })));
@@ -80,7 +82,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
         additionalFeesCurrency: 'AZN',
         total: 0,
       });
-      setOrderItems([{ productId: '', qty: 1, price: 0 }]);
+      setOrderItems([{ productId: '', qty: 1, price: 0, itemTotal: 0 }]);
       setSelectedCurrency('AZN');
       setManualExchangeRate(undefined);
       setManualExchangeRateInput(''); // Reset for new orders
@@ -95,8 +97,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
   const calculateTotalOrderValue = useCallback(() => {
     let productsSubtotalNative = 0;
     orderItems.forEach(item => {
-      if (item.productId && item.qty > 0 && item.price > 0) {
-        productsSubtotalNative += item.qty * item.price;
+      if (item.productId && item.qty > 0 && item.itemTotal > 0) { // Use itemTotal here
+        productsSubtotalNative += item.itemTotal;
       }
     });
 
@@ -149,18 +151,22 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
   const [totalFeesNative, setTotalFeesNative] = useState(0);
 
   useEffect(() => {
-    const { totalOrderValueAZN, updatedOrderItems, productsSubtotalNative, totalFeesNative } = calculateTotalOrderValue();
+    const { totalOrderValueAZN, updatedOrderItems: calculatedOrderItems, productsSubtotalNative, totalFeesNative } = calculateTotalOrderValue();
     setOrder(prev => ({ ...prev, total: parseFloat(totalOrderValueAZN.toFixed(2)) }));
-    setOrderItems(updatedOrderItems.map(item => ({
-      productId: item.productId,
-      qty: item.qty,
-      price: item.price,
-      currency: item.currency as 'AZN' | 'USD' | 'EUR' | 'RUB',
-      landedCostPerUnit: item.landedCostPerUnit,
-    })));
+    setOrderItems(prevItems => prevItems.map((prevItem, index) => {
+      const calculatedItem = calculatedOrderItems[index];
+      if (calculatedItem) {
+        return {
+          ...prevItem, // Keep productId, qty, price, itemTotal as they are the source of truth for user input
+          currency: calculatedItem.currency as 'AZN' | 'USD' | 'EUR' | 'RUB',
+          landedCostPerUnit: calculatedItem.landedCostPerUnit,
+        };
+      }
+      return prevItem;
+    }));
     setProductsSubtotalNative(productsSubtotalNative);
     setTotalFeesNative(totalFeesNative);
-  }, [order.transportationFees, order.customFees, order.additionalFees, order.transportationFeesCurrency, order.customFeesCurrency, order.additionalFeesCurrency, orderItems.map(i => `${i.productId}-${i.qty}-${i.price}`).join(','), selectedCurrency, manualExchangeRate, currencyRates, calculateTotalOrderValue]);
+  }, [order.transportationFees, order.customFees, order.additionalFees, order.transportationFeesCurrency, order.customFeesCurrency, order.additionalFeesCurrency, orderItems.map(i => `${i.productId}-${i.qty}-${i.price}-${i.itemTotal}`).join(','), selectedCurrency, manualExchangeRate, currencyRates, calculateTotalOrderValue]);
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -201,7 +207,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
   };
 
   const addOrderItem = useCallback(() => {
-    setOrderItems(prev => [...prev, { productId: '', qty: 1, price: 0, currency: selectedCurrency }]);
+    setOrderItems(prev => [...prev, { productId: '', qty: 1, price: 0, itemTotal: 0, currency: selectedCurrency }]);
   }, [selectedCurrency]);
 
   const removeOrderItem = useCallback((index: number) => {
@@ -216,17 +222,18 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
       if (field === 'productId') {
         item.productId = value;
       } else if (field === 'qty') {
-        item.qty = parseInt(value) || 0;
-        if (item.qty < 1) item.qty = 1;
+        const newQty = parseInt(value) || 0;
+        item.qty = newQty < 1 ? 1 : newQty; // Ensure qty is at least 1
+        item.itemTotal = item.qty * item.price; // Recalculate itemTotal based on new qty and existing price
       } else if (field === 'price') {
-        item.price = parseFloat(value) || 0;
-        if (item.price < 0) item.price = 0;
+        const newPrice = parseFloat(value) || 0;
+        item.price = newPrice < 0 ? 0 : newPrice; // Ensure price is not negative
+        item.itemTotal = item.qty * item.price; // Recalculate itemTotal based on existing qty and new price
       } else if (field === 'itemTotal') {
         const newItemTotal = parseFloat(value) || 0;
-        if (newItemTotal < 0) {
-          item.price = 0; // If total is negative, price should be 0
-        } else if (item.qty > 0) {
-          item.price = newItemTotal / item.qty; // Recalculate price
+        item.itemTotal = newItemTotal < 0 ? 0 : newItemTotal; // Ensure itemTotal is not negative
+        if (item.qty > 0) {
+          item.price = item.itemTotal / item.qty; // Recalculate price based on new itemTotal and existing qty
         } else {
           item.price = 0; // If qty is 0, price is 0
         }
@@ -258,7 +265,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
     const finalOrderItems: OrderItem[] = validOrderItems.map(item => ({
       productId: item.productId as number,
       qty: item.qty,
-      price: item.price,
+      price: item.price, // Use the derived price
       currency: selectedCurrency,
       landedCostPerUnit: item.landedCostPerUnit,
     }));
@@ -371,8 +378,8 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
             <div className="col-span-3">
               <Input
                 id="exchangeRate"
-                type="text" // Changed to text
-                value={manualExchangeRateInput} // Use the string state for the input
+                type="text"
+                value={manualExchangeRateInput}
                 onChange={handleExchangeRateChange}
                 placeholder={t('exchangeRatePlaceholder')}
                 className="mb-1"
@@ -388,9 +395,9 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
           <Label className="col-span-3">{t('product')}</Label>
           <Label className="col-span-2">{t('qty')}</Label>
           <Label className="col-span-2">{t('price')}</Label>
-          <Label className="col-span-2">{t('itemTotal')}</Label> {/* New Label */}
+          <Label className="col-span-2">{t('itemTotal')}</Label>
           <Label className="col-span-2">{t('landedCostPerUnit')}</Label>
-          <Label className="col-span-1"></Label> {/* For delete button */}
+          <Label className="col-span-1"></Label>
         </div>
         <div id="order-items">
           {orderItems.map((item, index) => (
@@ -417,7 +424,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
                       {products.map((product) => (
                         <CommandItem
                           key={product.id}
-                          value={`${product.name} ${product.sku}`} // Searchable value
+                          value={`${product.name} ${product.sku}`}
                           onSelect={() => {
                             handleOrderItemChange(index, 'productId', product.id);
                             setOpenComboboxIndex(null);
@@ -439,28 +446,28 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
               <Input
                 type="number"
                 value={String(item.qty)}
-                onChange={(e) => handleOrderItemChange(index, 'qty', parseInt(e.target.value) || 0)}
+                onChange={(e) => handleOrderItemChange(index, 'qty', e.target.value)}
                 className="col-span-2"
                 min="1"
               />
               <Input
                 type="number"
                 step="0.01"
-                value={String(item.price)}
-                onChange={(e) => handleOrderItemChange(index, 'price', parseFloat(e.target.value) || 0)}
+                value={item.price.toFixed(2)}
+                onChange={(e) => handleOrderItemChange(index, 'price', e.target.value)}
                 className="col-span-2"
                 min="0"
               />
               <Input
-                type="number" // Now editable
+                type="number"
                 step="0.01"
-                value={((item.qty || 0) * (item.price || 0)).toFixed(2)}
-                onChange={(e) => handleOrderItemChange(index, 'itemTotal', e.target.value)} // Handle change to itemTotal
+                value={item.itemTotal.toFixed(2)}
+                onChange={(e) => handleOrderItemChange(index, 'itemTotal', e.target.value)}
                 className="col-span-2"
                 min="0"
               />
               <Input
-                type="text" // Changed to text to display fixed decimal places
+                type="text"
                 value={item.landedCostPerUnit !== undefined ? item.landedCostPerUnit.toFixed(4) : '0.0000'}
                 readOnly
                 className="col-span-2 bg-gray-50 dark:bg-slate-700"
@@ -552,7 +559,6 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
           </Select>
         </div>
 
-        {/* New Subtotal and Fees Total Display */}
         <div className="grid grid-cols-4 items-center gap-4 mt-6 border-t pt-4 dark:border-slate-700">
           <Label className="text-right text-md font-semibold">{t('productsSubtotal')}</Label>
           <Input
