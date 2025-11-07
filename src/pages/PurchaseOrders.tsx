@@ -11,12 +11,12 @@ import { PlusCircle, Eye } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type SortConfig = {
-  key: keyof PurchaseOrder | 'supplierName' | 'warehouseName' | 'totalItems' | 'totalValueAZN';
+  key: keyof PurchaseOrder | 'supplierName' | 'warehouseName' | 'totalItems' | 'totalValueNative'; // Changed from totalValueAZN
   direction: 'ascending' | 'descending';
 };
 
 const PurchaseOrders: React.FC = () => {
-  const { purchaseOrders, suppliers, warehouses, products, deleteItem, showAlertModal } = useData();
+  const { purchaseOrders, suppliers, warehouses, products, deleteItem, showAlertModal, currencyRates } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState<number | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'orderDate', direction: 'descending' });
@@ -45,14 +45,36 @@ const PurchaseOrders: React.FC = () => {
 
     const sortableItems = filteredOrders.map(order => {
       const totalItems = order.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0;
-      const totalValueAZN = order.total || 0; // Total is already in AZN
+
+      // Calculate products subtotal in native currency
+      const productsSubtotalNative = order.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
+
+      // Determine the exchange rate from order's native currency to AZN
+      const orderNativeToAznRate = order.currency === 'AZN' ? 1 : (order.exchangeRate || currencyRates[order.currency] || 1);
+
+      // Helper to convert a fee from its currency to the order's native currency
+      const convertFeeToOrderNativeCurrency = (amount: number, feeCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB') => {
+        if (amount === 0) return 0;
+        const feeInAzn = amount * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
+        // Convert from AZN to order's native currency
+        return feeInAzn / orderNativeToAznRate;
+      };
+
+      let totalFeesNative = 0;
+      totalFeesNative += convertFeeToOrderNativeCurrency(order.transportationFees, order.transportationFeesCurrency);
+      totalFeesNative += convertFeeToOrderNativeCurrency(order.customFees, order.customFeesCurrency);
+      totalFeesNative += convertFeeToOrderNativeCurrency(order.additionalFees, order.additionalFeesCurrency);
+
+      const totalValueNative = productsSubtotalNative + totalFeesNative;
 
       return {
         ...order,
         supplierName: supplierMap[order.contactId] || 'N/A',
         warehouseName: warehouseMap[order.warehouseId] || 'N/A',
         totalItems,
-        totalValueAZN,
+        totalValueNative, // Add this calculated field
+        productsSubtotalNative, // Add for details modal
+        totalFeesNative, // Add for details modal
       };
     });
 
@@ -73,7 +95,7 @@ const PurchaseOrders: React.FC = () => {
       });
     }
     return sortableItems;
-  }, [purchaseOrders, supplierMap, warehouseMap, productMap, sortConfig, filterWarehouseId]);
+  }, [purchaseOrders, supplierMap, warehouseMap, productMap, sortConfig, filterWarehouseId, currencyRates]);
 
   const handleAddOrder = () => {
     setEditingOrderId(undefined);
@@ -95,7 +117,7 @@ const PurchaseOrders: React.FC = () => {
   };
 
   const viewOrderDetails = (orderId: number) => {
-    const order = purchaseOrders.find(o => o.id === orderId);
+    const order = filteredAndSortedOrders.find(o => o.id === orderId); // Use filteredAndSortedOrders to get calculated fields
     if (order) {
       setSelectedOrderDetails(order);
       setIsDetailsModalOpen(true);
@@ -164,8 +186,8 @@ const PurchaseOrders: React.FC = () => {
               <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('totalItems')}>
                 {t('totalItems')} {getSortIndicator('totalItems')}
               </TableHead>
-              <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('totalValueAZN')}>
-                {t('totalValue')} (AZN) {getSortIndicator('totalValueAZN')}
+              <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('totalValueNative')}>
+                {t('totalValue')} {getSortIndicator('totalValueNative')}
               </TableHead>
               <TableHead className="p-3">{t('actions')}</TableHead>
             </TableRow>
@@ -188,7 +210,7 @@ const PurchaseOrders: React.FC = () => {
                     </span>
                   </TableCell>
                   <TableCell className="p-3 font-bold">{order.totalItems}</TableCell>
-                  <TableCell className="p-3 font-bold text-sky-600 dark:text-sky-400">{order.totalValueAZN.toFixed(2)} AZN</TableCell>
+                  <TableCell className="p-3 font-bold text-sky-600 dark:text-sky-400">{order.totalValueNative.toFixed(2)} {order.currency}</TableCell>
                   <TableCell className="p-3">
                     <Button variant="link" onClick={() => viewOrderDetails(order.id)} className="mr-2 p-0 h-auto">
                       {t('view')}
@@ -250,39 +272,66 @@ const PurchaseOrders: React.FC = () => {
               <TableBody>
                 {selectedOrderDetails.items?.map((item, index) => {
                   const product = productMap[item.productId];
-                  const itemTotal = (item.landedCostPerUnit || 0) * item.qty;
+                  const itemTotalLandedAZN = (item.landedCostPerUnit || 0) * item.qty;
                   return (
                     <TableRow key={index} className="border-b dark:border-slate-600">
                       <TableCell className="p-2">{product?.name || 'N/A'}</TableCell>
                       <TableCell className="p-2">{item.qty}</TableCell>
                       <TableCell className="p-2">{item.price?.toFixed(2)} {item.currency || selectedOrderDetails.currency}</TableCell>
                       <TableCell className="p-2">{item.landedCostPerUnit?.toFixed(2)} AZN</TableCell>
-                      <TableCell className="p-2">{itemTotal.toFixed(2)} AZN</TableCell>
+                      <TableCell className="p-2">{itemTotalLandedAZN.toFixed(2)} AZN</TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
               <TableFooter>
-                <TableRow className="bg-gray-100 dark:bg-slate-700 font-bold">
-                  <TableCell colSpan={4} className="p-2 text-right">{t('productsSubtotal')}:</TableCell>
-                  <TableCell className="p-2">{selectedOrderDetails.items?.reduce((sum, item) => sum + ((item.landedCostPerUnit || 0) * item.qty), 0).toFixed(2)} AZN</TableCell>
-                </TableRow>
-                <TableRow className="bg-gray-100 dark:bg-slate-700">
-                  <TableCell colSpan={4} className="p-2 text-right">{t('transportationFees')}:</TableCell>
-                  <TableCell className="p-2">{selectedOrderDetails.transportationFees.toFixed(2)} {selectedOrderDetails.transportationFeesCurrency}</TableCell>
-                </TableRow>
-                <TableRow className="bg-gray-100 dark:bg-slate-700">
-                  <TableCell colSpan={4} className="p-2 text-right">{t('customFees')}:</TableCell>
-                  <TableCell className="p-2">{selectedOrderDetails.customFees.toFixed(2)} {selectedOrderDetails.customFeesCurrency}</TableCell>
-                </TableRow>
-                <TableRow className="bg-gray-100 dark:bg-slate-700">
-                  <TableCell colSpan={4} className="p-2 text-right">{t('additionalFees')}:</TableCell>
-                  <TableCell className="p-2">{selectedOrderDetails.additionalFees.toFixed(2)} {selectedOrderDetails.additionalFeesCurrency}</TableCell>
-                </TableRow>
-                <TableRow className="bg-gray-200 dark:bg-slate-600 font-bold">
-                  <TableCell colSpan={4} className="p-2 text-right">{t('total')}:</TableCell>
-                  <TableCell className="p-2 text-sky-600 dark:text-sky-400">{selectedOrderDetails.total.toFixed(2)} AZN</TableCell>
-                </TableRow>
+                {/* Recalculate for display in native currency for consistency with form */}
+                {(() => {
+                  const productsSubtotalNative = selectedOrderDetails.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
+                  const orderNativeToAznRate = selectedOrderDetails.currency === 'AZN' ? 1 : (selectedOrderDetails.exchangeRate || currencyRates[selectedOrderDetails.currency] || 1);
+
+                  const convertFeeToOrderNativeCurrency = (amount: number, feeCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB') => {
+                    if (amount === 0) return 0;
+                    const feeInAzn = amount * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
+                    return feeInAzn / orderNativeToAznRate;
+                  };
+
+                  let totalFeesNative = 0;
+                  totalFeesNative += convertFeeToOrderNativeCurrency(selectedOrderDetails.transportationFees, selectedOrderDetails.transportationFeesCurrency);
+                  totalFeesNative += convertFeeToOrderNativeCurrency(selectedOrderDetails.customFees, selectedOrderDetails.customFeesCurrency);
+                  totalFeesNative += convertFeeToOrderNativeCurrency(selectedOrderDetails.additionalFees, selectedOrderDetails.additionalFeesCurrency);
+
+                  const totalValueNative = productsSubtotalNative + totalFeesNative;
+
+                  return (
+                    <>
+                      <TableRow className="bg-gray-100 dark:bg-slate-700 font-bold">
+                        <TableCell colSpan={4} className="p-2 text-right">{t('productsSubtotal')} ({selectedOrderDetails.currency}):</TableCell>
+                        <TableCell className="p-2">{productsSubtotalNative.toFixed(2)} {selectedOrderDetails.currency}</TableCell>
+                      </TableRow>
+                      <TableRow className="bg-gray-100 dark:bg-slate-700">
+                        <TableCell colSpan={4} className="p-2 text-right">{t('transportationFees')} ({selectedOrderDetails.transportationFeesCurrency}):</TableCell>
+                        <TableCell className="p-2">{selectedOrderDetails.transportationFees.toFixed(2)} {selectedOrderDetails.transportationFeesCurrency}</TableCell>
+                      </TableRow>
+                      <TableRow className="bg-gray-100 dark:bg-slate-700">
+                        <TableCell colSpan={4} className="p-2 text-right">{t('customFees')} ({selectedOrderDetails.customFeesCurrency}):</TableCell>
+                        <TableCell className="p-2">{selectedOrderDetails.customFees.toFixed(2)} {selectedOrderDetails.customFeesCurrency}</TableCell>
+                      </TableRow>
+                      <TableRow className="bg-gray-100 dark:bg-slate-700">
+                        <TableCell colSpan={4} className="p-2 text-right">{t('additionalFees')} ({selectedOrderDetails.additionalFeesCurrency}):</TableCell>
+                        <TableCell className="p-2">{selectedOrderDetails.additionalFees.toFixed(2)} {selectedOrderDetails.additionalFeesCurrency}</TableCell>
+                      </TableRow>
+                      <TableRow className="bg-gray-200 dark:bg-slate-600 font-bold">
+                        <TableCell colSpan={4} className="p-2 text-right">{t('total')} ({selectedOrderDetails.currency}):</TableCell>
+                        <TableCell className="p-2 text-sky-600 dark:text-sky-400">{totalValueNative.toFixed(2)} {selectedOrderDetails.currency}</TableCell>
+                      </TableRow>
+                      <TableRow className="bg-gray-200 dark:bg-slate-600 font-bold">
+                        <TableCell colSpan={4} className="p-2 text-right">{t('totalLandedCost')} (AZN):</TableCell>
+                        <TableCell className="p-2 text-sky-600 dark:text-sky-400">{selectedOrderDetails.total.toFixed(2)} AZN</TableCell>
+                      </TableRow>
+                    </>
+                  );
+                })()}
               </TableFooter>
             </Table>
           </div>

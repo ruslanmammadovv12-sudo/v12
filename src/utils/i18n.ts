@@ -38,8 +38,6 @@ const i18n = {
     createSupplier: 'Create Supplier',
     editCustomer: 'Edit Customer',
     createCustomer: 'Create Customer',
-    addSupplier: 'Add Supplier',
-    addCustomer: 'Add Customer',
     actions: 'Actions',
     productsToMove: 'Products to Move',
     saveMovement: 'Save Movement',
@@ -91,6 +89,7 @@ const i18n = {
     movementNotNeeded: 'The sell order is already linked to the Main Warehouse. No movement needed.', // New translation
     noValidProductsForMovement: 'No valid products in the sell order to generate a movement for.', // New translation
     productMovementAlreadyGenerated: 'A product movement has already been generated for this sell order.', // New translation
+    totalLandedCost: 'Total Landed Cost', // New translation
   }
 };
 
