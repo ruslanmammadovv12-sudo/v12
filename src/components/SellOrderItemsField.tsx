@@ -100,20 +100,18 @@ const SellOrderItemsField: React.FC<SellOrderItemsFieldProps> = ({
               className="col-span-2"
             />
             <Input
-              type="number"
+              type="text" // Changed to text
               step="0.01"
               value={String(item.price)}
               onChange={(e) => handleOrderItemChange(index, 'price', parseFloat(e.target.value) || 0)}
               className="col-span-2"
-              min="0"
             />
             <Input
               type="text" // Changed to text
               step="0.01"
-              value={item.itemTotal.toFixed(2)} // Display itemTotal
+              value={String(item.itemTotal)}
               onChange={(e) => handleOrderItemChange(index, 'itemTotal', parseFloat(e.target.value) || 0)} // Handle change to itemTotal
               className="col-span-2"
-              min="0"
             />
             <Button
               type="button"
