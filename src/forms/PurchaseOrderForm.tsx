@@ -450,12 +450,11 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
                 className="col-span-2"
               />
               <Input
-                type="number"
+                type="text" // Changed to text
                 step="0.01"
                 value={item.price.toFixed(2)}
                 onChange={(e) => handleOrderItemChange(index, 'price', e.target.value)}
                 className="col-span-2"
-                min="0"
               />
               <Input
                 type="text"
@@ -463,7 +462,6 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
                 value={item.itemTotal.toFixed(2)}
                 onChange={(e) => handleOrderItemChange(index, 'itemTotal', e.target.value)}
                 className="col-span-2"
-                min="0"
               />
               <Input
                 type="text"
