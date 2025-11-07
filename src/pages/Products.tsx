@@ -33,7 +33,7 @@ const Products: React.FC = () => {
     // Apply SKU search filter
     if (searchSku) {
       filteredItems = filteredItems.filter(p =>
-        p.sku.toLowerCase().includes(searchSku.toLowerCase())
+        (typeof p.sku === 'string' ? p.sku : '').toLowerCase().includes(searchSku.toLowerCase())
       );
     }
 
