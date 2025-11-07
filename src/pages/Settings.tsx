@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import { useData, Settings, CurrencyRates, Product, Customer } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
@@ -117,15 +117,9 @@ const SettingsPage: React.FC = () => {
       t('eraseAllData'),
       t('eraseAllDataWarning'),
       () => {
-        showConfirmationModal(
-          t('eraseAllData'),
-          t('eraseAllData100PercentSure'),
-          () => {
-            const code = generateRandomCode();
-            setGeneratedCode(code);
-            setIsCodeConfirmationModalOpen(true);
-          }
-        );
+        const code = generateRandomCode();
+        setGeneratedCode(code);
+        setIsCodeConfirmationModalOpen(true);
       }
     );
   }, [showConfirmationModal, generateRandomCode]);
