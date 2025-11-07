@@ -347,6 +347,13 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
         )}
 
         <h3 className="font-semibold mt-4 mb-2 text-gray-700 dark:text-slate-200">{t('orderItems')}</h3>
+        <div className="grid grid-cols-12 gap-2 mb-2 items-center text-sm font-medium text-gray-700 dark:text-slate-300">
+          <Label className="col-span-4">{t('product')}</Label>
+          <Label className="col-span-2">{t('qty')}</Label>
+          <Label className="col-span-2">{t('price')}</Label>
+          <Label className="col-span-3">{t('landedCostPerUnit')}</Label>
+          <Label className="col-span-1"></Label> {/* For delete button */}
+        </div>
         <div id="order-items">
           {orderItems.map((item, index) => (
             <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-center">
@@ -356,7 +363,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
                     variant="outline"
                     role="combobox"
                     aria-expanded={openComboboxIndex === index}
-                    className="col-span-5 justify-between"
+                    className="col-span-4 justify-between"
                   >
                     {item.productId
                       ? productMap[item.productId]?.name || t('selectProduct')
@@ -395,7 +402,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
                 type="number"
                 value={String(item.qty)}
                 onChange={(e) => handleOrderItemChange(index, 'qty', parseInt(e.target.value) || 0)}
-                className="col-span-3"
+                className="col-span-2"
                 min="1"
               />
               <Input
@@ -403,8 +410,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
                 step="0.01"
                 value={String(item.price)}
                 onChange={(e) => handleOrderItemChange(index, 'price', parseFloat(e.target.value) || 0)}
-                className="col-span-3"
+                className="col-span-2"
                 min="0"
+              />
+              <Input
+                type="text" // Changed to text to display fixed decimal places
+                value={item.landedCostPerUnit !== undefined ? item.landedCostPerUnit.toFixed(4) : '0.0000'}
+                readOnly
+                className="col-span-3 bg-gray-50 dark:bg-slate-700"
               />
               <Button
                 type="button"
