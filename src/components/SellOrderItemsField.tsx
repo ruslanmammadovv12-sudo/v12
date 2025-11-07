@@ -16,6 +16,7 @@ interface SellOrderItemState {
   qty: number | string; // Added string type
   price: number | string; // Added string type
   itemTotal: number | string; // Added string type
+  cleanProfit?: number; // New field for calculated clean profit per item
 }
 
 interface SellOrderItemsFieldProps {
@@ -42,23 +43,24 @@ const SellOrderItemsField: React.FC<SellOrderItemsFieldProps> = ({
   return (
     <>
       <h3 className="font-semibold mt-4 mb-2 text-gray-700 dark:text-slate-200">{t('orderItems')}</h3>
-      <div className="grid grid-cols-11 gap-2 mb-2 items-center text-sm font-medium text-gray-700 dark:text-slate-300">
-        <Label className="col-span-4">{t('product')}</Label>
+      <div className="grid grid-cols-13 gap-2 mb-2 items-center text-sm font-medium text-gray-700 dark:text-slate-300">
+        <Label className="col-span-3">{t('product')}</Label>
         <Label className="col-span-2">{t('qty')}</Label>
         <Label className="col-span-2">{t('price')}</Label>
         <Label className="col-span-2">{t('itemTotal')}</Label>
+        <Label className="col-span-2">{t('cleanProfit')}</Label> {/* New column header */}
         <Label className="col-span-1"></Label>
       </div>
       <div id="order-items">
         {orderItems.map((item, index) => (
-          <div key={index} className="grid grid-cols-11 gap-2 mb-2 items-center">
+          <div key={index} className="grid grid-cols-13 gap-2 mb-2 items-center">
             <Popover open={openComboboxIndex === index} onOpenChange={(open) => setOpenComboboxIndex(open ? index : null)}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
                   aria-expanded={openComboboxIndex === index}
-                  className="col-span-4 justify-between"
+                  className="col-span-3 justify-between"
                 >
                   {item.productId
                     ? productMap[item.productId]?.name || t('selectProduct')
@@ -113,6 +115,12 @@ const SellOrderItemsField: React.FC<SellOrderItemsFieldProps> = ({
               onChange={(e) => handleOrderItemChange(index, 'itemTotal', e.target.value)}
               className="col-span-2"
             />
+            <Input
+              type="text"
+              value={item.cleanProfit !== undefined ? item.cleanProfit.toFixed(2) : '0.00'}
+              readOnly
+              className="col-span-2 bg-gray-50 dark:bg-slate-700"
+            /> {/* New input for clean profit */}
             <Button
               type="button"
               variant="ghost"

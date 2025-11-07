@@ -34,6 +34,8 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     customers, // Passed to Select
     warehouses, // Passed to Select
     productMap, // <--- Added productMap here
+    totalVatAmount, // New return value
+    totalCleanProfit, // New return value
   } = useSellOrderForm({ orderId, onSuccess });
 
   return (
@@ -118,6 +120,28 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
         />
 
         <div className="grid grid-cols-4 items-center gap-4 mt-6 border-t pt-4 dark:border-slate-700">
+          <Label className="text-right text-md font-semibold">{t('totalVat')}</Label>
+          <Input
+            id="totalVat"
+            type="number"
+            value={totalVatAmount.toFixed(2)}
+            readOnly
+            className="col-span-3 font-semibold bg-gray-50 dark:bg-slate-700"
+          />
+        </div>
+
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label className="text-right text-md font-semibold">{t('totalCleanProfit')}</Label>
+          <Input
+            id="totalCleanProfit"
+            type="number"
+            value={totalCleanProfit.toFixed(2)}
+            readOnly
+            className="col-span-3 font-semibold bg-gray-50 dark:bg-slate-700"
+          />
+        </div>
+
+        <div className="grid grid-cols-4 items-center gap-4 mt-4 border-t pt-4 dark:border-slate-700">
           <Label className="text-right text-lg font-bold">{t('total')}</Label>
           <Input
             id="total"

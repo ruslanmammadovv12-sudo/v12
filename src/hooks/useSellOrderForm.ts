@@ -10,6 +10,7 @@ interface SellOrderItemState {
   qty: number | string; // Allow string for intermediate input
   price: number | string; // Allow string for intermediate input
   itemTotal: number | string; // Allow string for intermediate input
+  cleanProfit?: number; // New field for calculated clean profit per item
 }
 
 interface UseSellOrderFormProps {
@@ -93,22 +94,47 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
     }
   }, [orderId, isEdit, sellOrders, settings.defaultVat, getNextId, isFormInitialized]);
 
-  const calculateTotalOrderValue = useCallback(() => {
+  const calculateOrderFinancials = useCallback(() => {
     let subtotal = 0;
+    let totalCleanProfit = 0;
+    const updatedOrderItemsWithProfit: SellOrderItemState[] = [];
+
     orderItems.forEach(item => {
       const itemTotalNum = parseFloat(String(item.itemTotal)) || 0;
-      if (item.productId && parseFloat(String(item.qty)) > 0 && itemTotalNum > 0) {
+      const qtyNum = parseFloat(String(item.qty)) || 0;
+      const priceNum = parseFloat(String(item.price)) || 0;
+      
+      let itemCleanProfit = 0;
+
+      if (item.productId && qtyNum > 0 && priceNum > 0) {
         subtotal += itemTotalNum;
+        const product = productMap[item.productId as number];
+        if (product) {
+          itemCleanProfit = (priceNum - (product.averageLandedCost || 0)) * qtyNum;
+        }
       }
+      updatedOrderItemsWithProfit.push({ ...item, cleanProfit: itemCleanProfit });
+      totalCleanProfit += itemCleanProfit;
     });
+
     const vatAmount = subtotal * ((order.vatPercent || 0) / 100);
-    return parseFloat((subtotal + vatAmount).toFixed(2));
-  }, [orderItems, order.vatPercent]);
+    const totalWithVat = parseFloat((subtotal + vatAmount).toFixed(2));
+
+    return {
+      subtotal,
+      totalVatAmount: parseFloat(vatAmount.toFixed(2)),
+      totalWithVat,
+      totalCleanProfit: parseFloat(totalCleanProfit.toFixed(2)),
+      updatedOrderItemsWithProfit,
+    };
+  }, [orderItems, order.vatPercent, productMap]);
+
+  const { subtotal, totalVatAmount, totalWithVat, totalCleanProfit, updatedOrderItemsWithProfit } = calculateOrderFinancials();
 
   useEffect(() => {
-    const total = calculateTotalOrderValue();
-    setOrder(prev => ({ ...prev, total }));
-  }, [orderItems.map(i => `${i.productId}-${i.qty}-${i.price}-${i.itemTotal}`).join(','), order.vatPercent, calculateTotalOrderValue]);
+    setOrder(prev => ({ ...prev, total: totalWithVat }));
+    setOrderItems(updatedOrderItemsWithProfit); // Update order items with calculated clean profit
+  }, [totalWithVat, updatedOrderItemsWithProfit]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -368,5 +394,7 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
     products,
     customers,
     warehouses,
+    totalVatAmount, // New return value
+    totalCleanProfit, // New return value
   };
 };

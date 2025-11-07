@@ -97,6 +97,8 @@ const i18n = {
     itemTotal: 'Item Total', // New translation
     searchBySku: 'Search by SKU', // New translation
     enterSku: 'Enter SKU...', // New translation
+    totalVat: 'Total VAT', // New translation
+    totalCleanProfit: 'Total Clean Profit', // New translation
   }
 };
 
