@@ -9,6 +9,7 @@ interface SellOrderItemState {
   productId: number | '';
   qty: number;
   price: number;
+  itemTotal: number; // Added itemTotal
 }
 
 interface UseSellOrderFormProps {
@@ -58,9 +59,10 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
         productId: item.productId,
         qty: item.qty,
         price: item.price,
+        itemTotal: item.qty * item.price, // Calculate initial itemTotal
       }));
     }
-    return [{ productId: '', qty: 1, price: 0 }];
+    return [{ productId: '', qty: 1, price: 0, itemTotal: 0 }]; // Initialize itemTotal
   });
 
   const [isFormInitialized, setIsFormInitialized] = useState(false);
@@ -74,6 +76,7 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
           productId: item.productId,
           qty: item.qty,
           price: item.price,
+          itemTotal: item.qty * item.price, // Calculate initial itemTotal
         })));
         setIsFormInitialized(true);
       }
@@ -85,7 +88,7 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
         vatPercent: settings.defaultVat,
         total: 0,
       });
-      setOrderItems([{ productId: '', qty: 1, price: 0 }]);
+      setOrderItems([{ productId: '', qty: 1, price: 0, itemTotal: 0 }]); // Initialize itemTotal
       setIsFormInitialized(true);
     }
   }, [orderId, isEdit, sellOrders, settings.defaultVat, getNextId, isFormInitialized]);
@@ -93,18 +96,18 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
   const calculateTotalOrderValue = useCallback(() => {
     let subtotal = 0;
     orderItems.forEach(item => {
-      if (item.productId && item.qty > 0 && item.price > 0) {
-        subtotal += item.qty * item.price;
+      if (item.productId && item.qty > 0 && item.itemTotal > 0) { // Use itemTotal
+        subtotal += item.itemTotal; // Sum itemTotal
       }
     });
     const vatAmount = subtotal * ((order.vatPercent || 0) / 100);
     return parseFloat((subtotal + vatAmount).toFixed(2));
-  }, [orderItems, order.vatPercent]);
+  }, [orderItems, order.vatPercent]); // Dependency on orderItems (which includes itemTotal)
 
   useEffect(() => {
     const total = calculateTotalOrderValue();
     setOrder(prev => ({ ...prev, total }));
-  }, [orderItems, order.vatPercent, calculateTotalOrderValue]);
+  }, [orderItems.map(i => `${i.productId}-${i.qty}-${i.price}-${i.itemTotal}`).join(','), order.vatPercent, calculateTotalOrderValue]); // Dependency on itemTotal for recalculation
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -120,7 +123,7 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
   }, []);
 
   const addOrderItem = useCallback(() => {
-    setOrderItems(prev => [...prev, { productId: '', qty: 1, price: 0 }]);
+    setOrderItems(prev => [...prev, { productId: '', qty: 1, price: 0, itemTotal: 0 }]); // Initialize itemTotal
   }, []);
 
   const removeOrderItem = useCallback((index: number) => {
@@ -128,9 +131,32 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
   }, []);
 
   const handleOrderItemChange = useCallback((index: number, field: keyof SellOrderItemState, value: any) => {
-    setOrderItems(prev =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
-    );
+    setOrderItems(prev => {
+      const newItems = [...prev];
+      const item = { ...newItems[index] };
+
+      if (field === 'productId') {
+        item.productId = value;
+      } else if (field === 'qty') {
+        const newQty = parseInt(value) || 0;
+        item.qty = newQty < 1 ? 1 : newQty;
+        item.itemTotal = item.qty * item.price; // Recalculate itemTotal
+      } else if (field === 'price') {
+        const newPrice = parseFloat(value) || 0;
+        item.price = newPrice < 0 ? 0 : newPrice;
+        item.itemTotal = item.qty * item.price; // Recalculate itemTotal
+      } else if (field === 'itemTotal') { // New logic for itemTotal
+        const newItemTotal = parseFloat(value) || 0;
+        item.itemTotal = newItemTotal < 0 ? 0 : newItemTotal;
+        if (item.qty > 0) {
+          item.price = newItemTotal / item.qty; // Recalculate price
+        } else {
+          item.price = 0; // If qty is 0, price is 0
+        }
+      }
+      newItems[index] = item;
+      return newItems;
+    });
   }, []);
 
   const handleGenerateProductMovement = useCallback(() => {
@@ -290,7 +316,7 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
     const finalOrderItems: OrderItem[] = validOrderItems.map(item => ({
       productId: item.productId as number,
       qty: item.qty,
-      price: item.price,
+      price: item.price, // This `item.price` will be the correct, possibly recalculated, unit price
     }));
 
     const orderToSave: SellOrder = {

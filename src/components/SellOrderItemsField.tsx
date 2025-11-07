@@ -15,6 +15,7 @@ interface SellOrderItemState {
   productId: number | '';
   qty: number;
   price: number;
+  itemTotal: number; // Added itemTotal
 }
 
 interface SellOrderItemsFieldProps {
@@ -45,7 +46,7 @@ const SellOrderItemsField: React.FC<SellOrderItemsFieldProps> = ({
         <Label className="col-span-4">{t('product')}</Label>
         <Label className="col-span-2">{t('qty')}</Label>
         <Label className="col-span-2">{t('price')}</Label>
-        <Label className="col-span-2">{t('total')}</Label>
+        <Label className="col-span-2">{t('itemTotal')}</Label> {/* New Label */}
         <Label className="col-span-1"></Label>
       </div>
       <div id="order-items">
@@ -108,10 +109,12 @@ const SellOrderItemsField: React.FC<SellOrderItemsFieldProps> = ({
               min="0"
             />
             <Input
-              type="text"
-              value={((item.qty || 0) * (item.price || 0)).toFixed(2)}
-              readOnly
-              className="col-span-2 bg-gray-50 dark:bg-slate-700"
+              type="number" // Now editable
+              step="0.01"
+              value={item.itemTotal.toFixed(2)} // Display itemTotal
+              onChange={(e) => handleOrderItemChange(index, 'itemTotal', parseFloat(e.target.value) || 0)} // Handle change to itemTotal
+              className="col-span-2"
+              min="0"
             />
             <Button
               type="button"
