@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { t, getKeyAsPageId } from '@/utils/i18n';
 import { toast as sonnerToast } from 'sonner';
@@ -88,6 +88,7 @@ export interface SellOrder {
 export interface Payment {
   id: number;
   orderId: number; // Linked order ID, 0 for manual expense
+  paymentCategory?: 'products' | 'fees' | 'manual'; // New field to specify what the payment is for
   manualDescription?: string; // For manual expenses
   date: string;
   amount: number;

@@ -17,22 +17,50 @@ type SortConfig = {
 };
 
 const OutgoingPayments: React.FC = () => {
-  const { outgoingPayments, purchaseOrders, suppliers, deleteItem } = useData();
+  const { outgoingPayments, purchaseOrders, suppliers, deleteItem, currencyRates } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPaymentId, setEditingPaymentId] = useState<number | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'ascending' });
   const [startDateFilter, setStartDateFilter] = useState<string>('');
   const [endDateFilter, setEndDateFilter] = useState<string>('');
 
-  const purchaseOrderMap = purchaseOrders.reduce((acc, o) => ({ ...acc, [o.id]: o }), {} as { [key: number]: PurchaseOrder });
-  const supplierMap = suppliers.reduce((acc, s) => ({ ...acc, [s.id]: s.name }), {} as { [key: number]: string });
+  const purchaseOrderMap = useMemo(() => purchaseOrders.reduce((acc, o) => ({ ...acc, [o.id]: o }), {} as { [key: number]: PurchaseOrder }), [purchaseOrders]);
+  const supplierMap = useMemo(() => suppliers.reduce((acc, s) => ({ ...acc, [s.id]: s.name }), {} as { [key: number]: string }), [suppliers]);
 
-  const paymentsByOrder = useMemo(() => {
-    return outgoingPayments.reduce((acc, p) => {
-      acc[p.orderId] = (acc[p.orderId] || 0) + p.amount;
-      return acc;
-    }, {} as { [key: number]: number });
+  // Aggregate payments by order ID and category (products/fees)
+  const paymentsByOrderAndCategory = useMemo(() => {
+    const result: { [orderId: number]: { products: number; fees: number } } = {};
+    outgoingPayments.forEach(p => {
+      if (p.orderId !== 0) {
+        if (!result[p.orderId]) {
+          result[p.orderId] = { products: 0, fees: 0 };
+        }
+        const category = p.paymentCategory || 'products'; // Default for old data
+        result[p.orderId][category] += p.amount;
+      }
+    });
+    return result;
   }, [outgoingPayments]);
+
+  // Calculate total products value and total fees value for a purchase order in AZN
+  const calculatePurchaseOrderBreakdown = useCallback((order: PurchaseOrder) => {
+    const orderNativeToAznRate = order.currency === 'AZN' ? 1 : (order.exchangeRate || currencyRates[order.currency] || 1);
+
+    const productsSubtotalNative = order.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
+    const productsSubtotalAZN = productsSubtotalNative * orderNativeToAznRate;
+
+    const convertFeeToAzn = (amount: number, feeCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB') => {
+      return amount * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
+    };
+
+    const transportationFeesAZN = convertFeeToAzn(order.transportationFees, order.transportationFeesCurrency);
+    const customFeesAZN = convertFeeToAzn(order.customFees, order.customFeesCurrency);
+    const additionalFeesAZN = convertFeeToAzn(order.additionalFees, order.additionalFeesCurrency);
+    const totalFeesAZN = transportationFeesAZN + customFeesAZN + additionalFeesAZN;
+
+    return { productsSubtotalAZN, totalFeesAZN };
+  }, [currencyRates]);
+
 
   const filteredAndSortedPayments = useMemo(() => {
     let filteredPayments = outgoingPayments;
@@ -46,14 +74,46 @@ const OutgoingPayments: React.FC = () => {
 
     const sortableItems = filteredPayments.map(p => {
       let linkedOrderDisplay = '';
+      let remainingAmountText = '';
+
       if (p.orderId === 0) {
         linkedOrderDisplay = t('manualExpense');
       } else {
         const order = purchaseOrderMap[p.orderId];
         const supplierName = order ? supplierMap[order.contactId] || 'Unknown' : 'N/A';
-        linkedOrderDisplay = `${t('orderId')} #${p.orderId} (${supplierName})`;
+        const categoryText = p.paymentCategory === 'products' ? t('paymentForProducts') : (p.paymentCategory === 'fees' ? t('paymentForFees') : '');
+        linkedOrderDisplay = `${t('orderId')} #${p.orderId} (${supplierName}) ${categoryText}`;
+
+        if (order) {
+          const { productsSubtotalAZN, totalFeesAZN } = calculatePurchaseOrderBreakdown(order);
+          const currentOrderPayments = paymentsByOrderAndCategory[order.id] || { products: 0, fees: 0 };
+
+          // Calculate remaining *if this payment were reversed*
+          let totalPaidForCategory = 0;
+          let totalCategoryValue = 0;
+
+          if (p.paymentCategory === 'products') {
+            totalPaidForCategory = currentOrderPayments.products;
+            totalCategoryValue = productsSubtotalAZN;
+          } else if (p.paymentCategory === 'fees') {
+            totalPaidForCategory = currentOrderPayments.fees;
+            totalCategoryValue = totalFeesAZN;
+          } else { // Fallback for old data or if category is missing, assume it was for products
+            totalPaidForCategory = currentOrderPayments.products;
+            totalCategoryValue = productsSubtotalAZN;
+          }
+
+          const remainingIfReversed = totalCategoryValue - (totalPaidForCategory - p.amount);
+          const isFullyPaid = remainingIfReversed <= 0.001;
+
+          if (isFullyPaid) {
+            remainingAmountText = `<span class="text-xs text-green-700 dark:text-green-400 ml-1">(Fully Paid)</span>`;
+          } else {
+            remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${remainingIfReversed.toFixed(2)} AZN)</span>`;
+          }
+        }
       }
-      return { ...p, linkedOrderDisplay };
+      return { ...p, linkedOrderDisplay, remainingAmountText };
     });
 
     if (sortConfig.key) {
@@ -73,7 +133,7 @@ const OutgoingPayments: React.FC = () => {
       });
     }
     return sortableItems;
-  }, [outgoingPayments, purchaseOrders, suppliers, sortConfig, startDateFilter, endDateFilter, paymentsByOrder]);
+  }, [outgoingPayments, purchaseOrders, suppliers, sortConfig, startDateFilter, endDateFilter, paymentsByOrderAndCategory, calculatePurchaseOrderBreakdown]);
 
   const requestSort = (key: SortConfig['key']) => {
     let direction: SortConfig['direction'] = 'ascending';
@@ -169,23 +229,15 @@ const OutgoingPayments: React.FC = () => {
           <TableBody>
             {filteredAndSortedPayments.length > 0 ? (
               filteredAndSortedPayments.map(p => {
-                const order = purchaseOrderMap[p.orderId];
                 let rowClass = 'border-b dark:border-slate-700 text-gray-800 dark:text-slate-300';
-                let remainingAmountText = '';
-
-                if (order && p.orderId !== 0) {
-                  const totalPaidForThisOrder = paymentsByOrder[p.orderId] || 0;
-                  const orderTotal = order.total;
-                  const remainingIfReversed = orderTotal - (totalPaidForThisOrder - p.amount);
-
-                  const isFullyPaid = remainingIfReversed <= 0.001;
-
-                  if (isFullyPaid) {
+                // Determine row class based on payment status (fully paid or partially paid)
+                // This logic is now handled within filteredAndSortedPayments map for remainingAmountText
+                // We can use the presence of remainingAmountText to infer partial/full payment status
+                if (p.orderId !== 0) {
+                  if (p.remainingAmountText?.includes('Fully Paid')) {
                     rowClass += ' bg-green-100 dark:bg-green-900/50';
-                    remainingAmountText = `<span class="text-xs text-green-700 dark:text-green-400 ml-1">(Fully Paid)</span>`;
-                  } else {
+                  } else if (p.remainingAmountText?.includes('Remaining')) {
                     rowClass += ' bg-yellow-100 dark:bg-yellow-900/50';
-                    remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${remainingIfReversed.toFixed(2)} AZN)</span>`;
                   }
                 }
 
@@ -197,7 +249,7 @@ const OutgoingPayments: React.FC = () => {
                     <TableCell className="p-3">{p.linkedOrderDisplay}</TableCell>
                     <TableCell className="p-3">{p.date}</TableCell>
                     <TableCell className="p-3 font-bold">
-                      {p.amount.toFixed(2)} AZN <span dangerouslySetInnerHTML={{ __html: remainingAmountText }} />
+                      {p.amount.toFixed(2)} AZN <span dangerouslySetInnerHTML={{ __html: p.remainingAmountText || '' }} />
                     </TableCell>
                     <TableCell className="p-3">{p.method}</TableCell>
                     <TableCell className="p-3">
