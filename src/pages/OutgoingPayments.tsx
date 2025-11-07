@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useData, Payment, PurchaseOrder } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
