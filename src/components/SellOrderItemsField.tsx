@@ -109,7 +109,7 @@ const SellOrderItemsField: React.FC<SellOrderItemsFieldProps> = ({
               min="0"
             />
             <Input
-              type="number" // Now editable
+              type="text" // Changed to text
               step="0.01"
               value={item.itemTotal.toFixed(2)} // Display itemTotal
               onChange={(e) => handleOrderItemChange(index, 'itemTotal', parseFloat(e.target.value) || 0)} // Handle change to itemTotal
