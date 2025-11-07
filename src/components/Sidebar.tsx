@@ -40,18 +40,18 @@ const Sidebar: React.FC = () => {
           <>
             <img src={companyLogo} className="w-auto h-8 mr-3 object-contain" alt="Company Logo" />
             {companyName && (
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{companyName}</h1>
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{companyName}</h1>
             )}
           </>
         ) : companyName ? (
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{companyName}</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{companyName}</h1>
         ) : (
           <>
             <svg className="w-8 h-8 mr-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3 6h18M12 6v12" stroke="#6b7280" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M3 6l9 12 9-12" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">ERP</h1>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">ERP</h1>
           </>
         )}
       </div>
