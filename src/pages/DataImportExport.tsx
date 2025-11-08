@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useCallback } from 'react'; // Added useCallback
 import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Download, UploadCloud, Trash2, RotateCcw, XCircle } from 'lucide-react'; // Added Recycle Bin icons
 import ExcelImportButton from '@/components/ExcelImportButton';
-import ExcelExportButton from '@/components/ExcelExportButton';
+import ExcelExportButton from '@/components/ExcelImportButton';
 import PurchaseOrdersMultiSheetExportButton from '@/components/PurchaseOrdersMultiSheetExportButton';
 import SellOrdersMultiSheetExportButton from '@/components/SellOrdersMultiSheetExportButton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; // Added Table components for Recycle Bin
@@ -504,7 +504,7 @@ const DataImportExport: React.FC = () => {
   };
 
   // Helper function for Recycle Bin summary
-  const getItemSummary = (item: any, collectionKey: CollectionKey): string => {
+  const getItemSummary = useCallback((item: any, collectionKey: CollectionKey): string => {
     switch (collectionKey) {
       case 'products':
         const product = item as Product;
@@ -539,7 +539,7 @@ const DataImportExport: React.FC = () => {
       default:
         return JSON.stringify(item);
     }
-  };
+  }, [productMap, supplierMap, customerMap, warehouseMap]); // Added maps as dependencies for useCallback
 
   return (
     <div className="container mx-auto p-4">
