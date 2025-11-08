@@ -12,8 +12,7 @@ interface ExcelExportButtonProps {
   data: any[];
   fileName: string;
   sheetName?: string;
-  label: string;
-  description: string;
+  buttonLabel: string; // Changed from 'label'
   columns: { header: string; accessor: string }[];
 }
 
@@ -21,8 +20,7 @@ const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
   data,
   fileName,
   sheetName = 'Sheet1',
-  label,
-  description,
+  buttonLabel, // Changed from 'label'
   columns,
 }) => {
   const handleExport = () => {
@@ -44,20 +42,14 @@ const ExcelExportButton: React.FC<ExcelExportButtonProps> = ({
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
     XLSX.writeFile(wb, `${fileName}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 
-    toast.success(t('excelExportSuccess'), { description: `${label} ${t('exportedSuccessfully')}.` });
+    toast.success(t('excelExportSuccess'), { description: `${buttonLabel} ${t('exportedSuccessfully')}.` });
   };
 
   return (
-    <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{label}</h2>
-      <p className="text-gray-600 dark:text-slate-400 mb-4">
-        {description}
-      </p>
-      <Button onClick={handleExport} className="bg-sky-500 hover:bg-sky-600 text-white w-full"> {/* Added w-full */}
-        <Download className="w-4 h-4 mr-2" />
-        {t('exportExcelFile')}
-      </Button>
-    </div>
+    <Button onClick={handleExport} className="bg-sky-500 hover:bg-sky-600 text-white w-full">
+      <Download className="w-4 h-4 mr-2" />
+      {buttonLabel}
+    </Button>
   );
 };
 

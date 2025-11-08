@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
+import *s XLSX from 'xlsx';
 import { t } from '@/utils/i18n';
 import { PurchaseOrder, Product, Supplier, Warehouse, CurrencyRates } from '@/types';
 
@@ -14,6 +14,7 @@ interface PurchaseOrdersMultiSheetExportButtonProps {
   supplierMap: { [key: number]: Supplier };
   warehouseMap: { [key: number]: Warehouse };
   currencyRates: CurrencyRates;
+  buttonLabel: string; // New prop
 }
 
 const PurchaseOrdersMultiSheetExportButton: React.FC<PurchaseOrdersMultiSheetExportButtonProps> = ({
@@ -22,6 +23,7 @@ const PurchaseOrdersMultiSheetExportButton: React.FC<PurchaseOrdersMultiSheetExp
   supplierMap,
   warehouseMap,
   currencyRates,
+  buttonLabel,
 }) => {
   const handleExport = () => {
     if (!purchaseOrders || purchaseOrders.length === 0) {
@@ -109,16 +111,10 @@ const PurchaseOrdersMultiSheetExportButton: React.FC<PurchaseOrdersMultiSheetExp
   };
 
   return (
-    <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('exportPurchaseOrdersToExcelMultiSheet')}</h2>
-      <p className="text-gray-600 dark:text-slate-400 mb-4">
-        {t('exportPurchaseOrdersDescriptionMultiSheet')}
-      </p>
-      <Button onClick={handleExport} className="bg-sky-500 hover:bg-sky-600 text-white w-full">
-        <Download className="w-4 h-4 mr-2" />
-        {t('exportExcelFile')}
-      </Button>
-    </div>
+    <Button onClick={handleExport} className="bg-sky-500 hover:bg-sky-600 text-white w-full">
+      <Download className="w-4 h-4 mr-2" />
+      {buttonLabel}
+    </Button>
   );
 };
 

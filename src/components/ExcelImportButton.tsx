@@ -12,12 +12,12 @@ import { Product, Customer } from '@/types'; // Import types from types file
 
 interface ExcelImportButtonProps {
   onImport: (data: any[]) => void;
-  label: string;
-  description: string;
+  buttonLabel: string; // Changed from 'label'
+  description: string; // Kept for the file input description, but not rendered as h2/p
   requiredColumns: string[];
 }
 
-const ExcelImportButton: React.FC<ExcelImportButtonProps> = ({ onImport, label, description, requiredColumns }) => {
+const ExcelImportButton: React.FC<ExcelImportButtonProps> = ({ onImport, buttonLabel, description, requiredColumns }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,7 +50,7 @@ const ExcelImportButton: React.FC<ExcelImportButtonProps> = ({ onImport, label, 
         }
 
         onImport(json);
-        toast.success(t('excelImportSuccess'), { description: `${label} ${t('importedSuccessfully')}.` });
+        toast.success(t('excelImportSuccess'), { description: `${buttonLabel} ${t('importedSuccessfully')}.` });
 
       } catch (error) {
         console.error("Error importing Excel:", error);
@@ -61,25 +61,19 @@ const ExcelImportButton: React.FC<ExcelImportButtonProps> = ({ onImport, label, 
   };
 
   return (
-    <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{label}</h2>
-      <p className="text-gray-600 dark:text-slate-400 mb-4">
-        {description}
-      </p>
-      <div className="flex items-center space-x-4">
-        <Input
-          id={`excel-import-${label.replace(/\s/g, '-')}`}
-          type="file"
-          accept=".xlsx, .xls"
-          onChange={handleFileChange}
-          ref={fileInputRef}
-          className="hidden"
-        />
-        <Button onClick={() => document.getElementById(`excel-import-${label.replace(/\s/g, '-')}`)?.click()} className="bg-sky-500 hover:bg-sky-600 text-white w-full"> {/* Added w-full */}
-          <UploadCloud className="w-4 h-4 mr-2" />
-          {t('importExcelFile')}
-        </Button>
-      </div>
+    <div className="flex items-center space-x-4">
+      <Input
+        id={`excel-import-${buttonLabel.replace(/\s/g, '-')}`}
+        type="file"
+        accept=".xlsx, .xls"
+        onChange={handleFileChange}
+        ref={fileInputRef}
+        className="hidden"
+      />
+      <Button onClick={() => document.getElementById(`excel-import-${buttonLabel.replace(/\s/g, '-')}`)?.click()} className="bg-sky-500 hover:bg-sky-600 text-white w-full">
+        <UploadCloud className="w-4 h-4 mr-2" />
+        {buttonLabel}
+      </Button>
     </div>
   );
 };

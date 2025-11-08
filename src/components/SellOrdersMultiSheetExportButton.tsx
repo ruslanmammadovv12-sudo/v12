@@ -13,6 +13,7 @@ interface SellOrdersMultiSheetExportButtonProps {
   productMap: { [key: number]: Product };
   customerMap: { [key: number]: Customer };
   warehouseMap: { [key: number]: Warehouse };
+  buttonLabel: string; // New prop
 }
 
 const SellOrdersMultiSheetExportButton: React.FC<SellOrdersMultiSheetExportButtonProps> = ({
@@ -20,6 +21,7 @@ const SellOrdersMultiSheetExportButton: React.FC<SellOrdersMultiSheetExportButto
   productMap,
   customerMap,
   warehouseMap,
+  buttonLabel,
 }) => {
   const handleExport = () => {
     if (!sellOrders || sellOrders.length === 0) {
@@ -97,16 +99,10 @@ const SellOrdersMultiSheetExportButton: React.FC<SellOrdersMultiSheetExportButto
   };
 
   return (
-    <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('exportSellOrdersToExcelMultiSheet')}</h2>
-      <p className="text-gray-600 dark:text-slate-400 mb-4">
-        {t('exportSellOrdersDescriptionMultiSheet')}
-      </p>
-      <Button onClick={handleExport} className="bg-sky-500 hover:bg-sky-600 text-white w-full">
-        <Download className="w-4 h-4 mr-2" />
-        {t('exportExcelFile')}
-      </Button>
-    </div>
+    <Button onClick={handleExport} className="bg-sky-500 hover:bg-sky-600 text-white w-full">
+      <Download className="w-4 h-4 mr-2" />
+      {buttonLabel}
+    </Button>
   );
 };
 

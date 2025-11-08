@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react'; // Import useRef
-import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext'; // Import MOCK_CURRENT_DATE from DataContext
+import React, { useRef, useMemo } from 'react';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download, UploadCloud } from 'lucide-react'; // Add UploadCloud icon
-import ExcelImportButton from '@/components/ExcelImportButton'; // Import the new component
-import ExcelExportButton from '@/components/ExcelExportButton'; // Import the new ExcelExportButton
-import PurchaseOrdersMultiSheetExportButton from '@/components/PurchaseOrdersMultiSheetExportButton'; // Import new component
-import SellOrdersMultiSheetExportButton from '@/components/SellOrdersMultiSheetExportButton'; // Import new component
-import { Product, Customer, Supplier, PurchaseOrder, SellOrder, Payment, ProductMovement } from '@/types'; // Import all necessary types
+import { Download, UploadCloud } from 'lucide-react';
+import ExcelImportButton from '@/components/ExcelImportButton';
+import ExcelExportButton from '@/components/ExcelExportButton';
+import PurchaseOrdersMultiSheetExportButton from '@/components/PurchaseOrdersMultiSheetExportButton';
+import SellOrdersMultiSheetExportButton from '@/components/SellOrdersMultiSheetExportButton';
+import { Product, Customer, Supplier, PurchaseOrder, SellOrder, Payment, ProductMovement } from '@/types';
 
 const DataImportExport: React.FC = () => {
   const {
@@ -22,19 +22,17 @@ const DataImportExport: React.FC = () => {
     setSellOrders, setIncomingPayments, setOutgoingPayments, setProductMovements,
     setSettings,
     showConfirmationModal,
-    getNextId, // Added for Excel import
-    setNextIdForCollection, // Added for Excel import
+    getNextId,
+    setNextIdForCollection,
   } = useData();
 
-  const fileInputRef = useRef<HTMLInputElement>(null); // Create a ref for the hidden file input
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Mappings for display and import/export ---
   const supplierMap = useMemo(() => suppliers.reduce((acc, s) => ({ ...acc, [s.id]: s }), {} as { [key: number]: Supplier }), [suppliers]);
   const customerMap = useMemo(() => customers.reduce((acc, c) => ({ ...acc, [c.id]: c }), {} as { [key: number]: Customer }), [customers]);
   const warehouseMap = useMemo(() => warehouses.reduce((acc, w) => ({ ...acc, [w.id]: w }), {} as { [key: number]: Warehouse }), [warehouses]);
   const productMap = useMemo(() => products.reduce((acc, p) => ({ ...acc, [p.id]: p }), {} as { [key: number]: Product }), [products]);
 
-  // Helper to format order items into a string for export
   const formatOrderItems = (items: any[] | undefined, productMap: { [key: number]: Product }, currency?: string, includeLandedCost = false) => {
     if (!items || items.length === 0) return '';
     return items.map(item => {
@@ -49,7 +47,6 @@ const DataImportExport: React.FC = () => {
     }).join('; ');
   };
 
-  // Helper to format product movement items into a string for export
   const formatMovementItems = (items: { productId: number; quantity: number }[] | undefined, productMap: { [key: number]: Product }) => {
     if (!items || items.length === 0) return '';
     return items.map(item => {
@@ -59,7 +56,6 @@ const DataImportExport: React.FC = () => {
     }).join('; ');
   };
 
-  // --- JSON Backup/Restore ---
   const handleExportData = () => {
     const dataToExport = {
       products,
@@ -72,7 +68,7 @@ const DataImportExport: React.FC = () => {
       outgoingPayments,
       productMovements,
       settings,
-      currencyRates, // Include currency rates in JSON export
+      currencyRates,
     };
 
     const jsonString = JSON.stringify(dataToExport, null, 2);
@@ -89,7 +85,7 @@ const DataImportExport: React.FC = () => {
   };
 
   const handleImportButtonClick = () => {
-    fileInputRef.current?.click(); // Trigger the hidden file input click
+    fileInputRef.current?.click();
   };
 
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,7 +110,6 @@ const DataImportExport: React.FC = () => {
           t('restoreData'),
           t('restoreWarning'),
           () => {
-            // Perform the restore
             setProducts(importedData.products || []);
             setSuppliers(importedData.suppliers || []);
             setCustomers(importedData.customers || []);
@@ -125,9 +120,8 @@ const DataImportExport: React.FC = () => {
             setOutgoingPayments(importedData.outgoingPayments || []);
             setProductMovements(importedData.productMovements || []);
             setSettings(importedData.settings || {});
-            setCurrencyRates(importedData.currencyRates || currencyRates); // Restore currency rates
+            setCurrencyRates(importedData.currencyRates || currencyRates);
             toast.success(t('restoreSuccess'));
-            // Optionally reload the app to ensure all contexts are re-initialized
             setTimeout(() => window.location.reload(), 1000);
           }
         );
@@ -140,15 +134,14 @@ const DataImportExport: React.FC = () => {
     reader.readAsText(file);
   };
 
-  // --- Excel Import Handlers ---
   const handleImportProducts = (data: any[]) => {
     const newProducts: Product[] = data.map((row: any) => ({
-      id: getNextId('products'), // Assign new ID for each imported product
+      id: getNextId('products'),
       name: String(row['Product Name'] || ''),
       sku: String(row['SKU'] || ''),
       category: String(row['Category'] || ''),
       description: String(row['Description'] || ''),
-      stock: {}, // Initialize empty stock, will be updated by POs or movements
+      stock: {},
       minStock: parseInt(row['Min. Stock'] || '0'),
       averageLandedCost: parseFloat(row['Avg. Landed Cost'] || '0'),
       imageUrl: String(row['Image URL'] || ''),
@@ -164,14 +157,14 @@ const DataImportExport: React.FC = () => {
 
       const allProducts = [...prev, ...uniqueNewProducts];
       const maxId = allProducts.reduce((max, p) => Math.max(max, p.id), 0);
-      setNextIdForCollection('products', maxId + 1); // Update next ID counter
+      setNextIdForCollection('products', maxId + 1);
       return allProducts;
     });
   };
 
   const handleImportCustomers = (data: any[]) => {
     const newCustomers: Customer[] = data.map((row: any) => ({
-      id: getNextId('customers'), // Assign new ID for each imported customer
+      id: getNextId('customers'),
       name: String(row['Customer Name'] || ''),
       contact: String(row['Contact Person'] || ''),
       email: String(row['Email'] || ''),
@@ -189,7 +182,7 @@ const DataImportExport: React.FC = () => {
 
       const allCustomers = [...prev, ...uniqueNewCustomers];
       const maxId = allCustomers.reduce((max, c) => Math.max(max, c.id), 0);
-      setNextIdForCollection('customers', maxId + 1); // Update next ID counter
+      setNextIdForCollection('customers', maxId + 1);
       return allCustomers;
     });
   };
@@ -236,7 +229,6 @@ const DataImportExport: React.FC = () => {
         return;
       }
 
-      // Basic validation for required fields
       if (!row['Order Date'] || !row['Status'] || !row['Currency'] || !row['Total (AZN)']) {
         errors.push(`Row ${index + 2}: Missing required fields (Order Date, Status, Currency, Total (AZN)).`);
         return;
@@ -248,7 +240,7 @@ const DataImportExport: React.FC = () => {
         orderDate: String(row['Order Date']),
         warehouseId: warehouse.id,
         status: row['Status'] as PurchaseOrder['status'],
-        items: [], // Items cannot be imported via this simple Excel import
+        items: [],
         currency: row['Currency'] as PurchaseOrder['currency'],
         exchangeRate: parseFloat(row['Exchange Rate to AZN'] || '0') || undefined,
         transportationFees: parseFloat(row['Transportation Fees'] || '0'),
@@ -309,7 +301,7 @@ const DataImportExport: React.FC = () => {
         orderDate: String(row['Order Date']),
         warehouseId: warehouse.id,
         status: row['Status'] as SellOrder['status'],
-        items: [], // Items cannot be imported via this simple Excel import
+        items: [],
         vatPercent: parseFloat(row['VAT (%)'] || '0'),
         total: parseFloat(row['Total (AZN)'] || '0'),
       };
@@ -479,7 +471,7 @@ const DataImportExport: React.FC = () => {
         id: getNextId('productMovements'),
         sourceWarehouseId: sourceWarehouse.id,
         destWarehouseId: destWarehouse.id,
-        items: [], // Items cannot be imported via this simple Excel import
+        items: [],
         date: String(row['Movement Date']),
       };
       newMovements.push(newMovement);
@@ -504,7 +496,6 @@ const DataImportExport: React.FC = () => {
     }
   };
 
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-200 mb-6">{t('dataImportExport')}</h1>
@@ -523,7 +514,7 @@ const DataImportExport: React.FC = () => {
           <p className="text-gray-600 dark:text-slate-400 mb-4">
             {t('restoreWarning')}
           </p>
-          <div className="flex flex-col space-y-4"> {/* Changed to flex-col and space-y */}
+          <div className="flex flex-col space-y-4">
             <Input
               id="import-file"
               type="file"
@@ -532,7 +523,7 @@ const DataImportExport: React.FC = () => {
               ref={fileInputRef}
               className="hidden"
             />
-            <Button onClick={handleImportButtonClick} className="bg-sky-500 hover:bg-sky-600 text-white w-full"> {/* Added w-full */}
+            <Button onClick={handleImportButtonClick} className="bg-sky-500 hover:bg-sky-600 text-white w-full">
               <UploadCloud className="w-4 h-4 mr-2" />
               {t('importJsonFile')}
             </Button>
@@ -540,219 +531,277 @@ const DataImportExport: React.FC = () => {
         </div>
       </div>
 
-      {/* Excel Export Sections */}
-      <ExcelExportButton
-        label={t('exportProductsToExcel')}
-        description={t('exportProductsDescription')}
-        data={products.map(p => ({
-          ...p,
-          totalStock: Object.values(p.stock || {}).reduce((a, b) => a + b, 0),
-        }))}
-        fileName="products_export"
-        sheetName="Products"
-        columns={[
-          { header: 'ID', accessor: 'id' },
-          { header: 'Product Name', accessor: 'name' },
-          { header: 'SKU', accessor: 'sku' },
-          { header: 'Category', accessor: 'category' },
-          { header: 'Description', accessor: 'description' },
-          { header: 'Min. Stock', accessor: 'minStock' },
-          { header: 'Avg. Landed Cost', accessor: 'averageLandedCost' },
-          { header: 'Image URL', accessor: 'imageUrl' },
-          { header: 'Total Stock', accessor: 'totalStock' },
-        ]}
-      />
+      {/* Products Section */}
+      <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('products')}</h2>
+        <p className="text-gray-600 dark:text-slate-400 mb-4">
+          {t('productsImportExportDescription')}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ExcelImportButton
+            buttonLabel={t('importExcelFile')}
+            description={t('importProductsDescription')}
+            onImport={handleImportProducts}
+            requiredColumns={['Product Name', 'SKU', 'Category', 'Description', 'Min. Stock', 'Avg. Landed Cost', 'Image URL']}
+          />
+          <ExcelExportButton
+            buttonLabel={t('exportExcelFile')}
+            data={products.map(p => ({
+              ...p,
+              totalStock: Object.values(p.stock || {}).reduce((a, b) => a + b, 0),
+            }))}
+            fileName="products_export"
+            sheetName="Products"
+            columns={[
+              { header: 'ID', accessor: 'id' },
+              { header: 'Product Name', accessor: 'name' },
+              { header: 'SKU', accessor: 'sku' },
+              { header: 'Category', accessor: 'category' },
+              { header: 'Description', accessor: 'description' },
+              { header: 'Min. Stock', accessor: 'minStock' },
+              { header: 'Avg. Landed Cost', accessor: 'averageLandedCost' },
+              { header: 'Image URL', accessor: 'imageUrl' },
+              { header: 'Total Stock', accessor: 'totalStock' },
+            ]}
+          />
+        </div>
+      </div>
 
-      <ExcelExportButton
-        label={t('exportCustomersToExcel')}
-        description={t('exportCustomersDescription')}
-        data={customers}
-        fileName="customers_export"
-        sheetName="Customers"
-        columns={[
-          { header: 'ID', accessor: 'id' },
-          { header: 'Customer Name', accessor: 'name' },
-          { header: 'Contact Person', accessor: 'contact' },
-          { header: 'Email', accessor: 'email' },
-          { header: 'Phone', accessor: 'phone' },
-          { header: 'Address', accessor: 'address' },
-        ]}
-      />
+      {/* Customers Section */}
+      <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('customers')}</h2>
+        <p className="text-gray-600 dark:text-slate-400 mb-4">
+          {t('customersImportExportDescription')}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ExcelImportButton
+            buttonLabel={t('importExcelFile')}
+            description={t('importCustomersDescription')}
+            onImport={handleImportCustomers}
+            requiredColumns={['Customer Name', 'Contact Person', 'Email', 'Phone', 'Address']}
+          />
+          <ExcelExportButton
+            buttonLabel={t('exportExcelFile')}
+            data={customers}
+            fileName="customers_export"
+            sheetName="Customers"
+            columns={[
+              { header: 'ID', accessor: 'id' },
+              { header: 'Customer Name', accessor: 'name' },
+              { header: 'Contact Person', accessor: 'contact' },
+              { header: 'Email', accessor: 'email' },
+              { header: 'Phone', accessor: 'phone' },
+              { header: 'Address', accessor: 'address' },
+            ]}
+          />
+        </div>
+      </div>
 
-      <ExcelExportButton
-        label={t('exportSuppliersToExcel')}
-        description={t('exportSuppliersDescription')}
-        data={suppliers}
-        fileName="suppliers_export"
-        sheetName="Suppliers"
-        columns={[
-          { header: 'ID', accessor: 'id' },
-          { header: 'Supplier Name', accessor: 'name' },
-          { header: 'Contact Person', accessor: 'contact' },
-          { header: 'Email', accessor: 'email' },
-          { header: 'Phone', accessor: 'phone' },
-          { header: 'Address', accessor: 'address' },
-        ]}
-      />
+      {/* Suppliers Section */}
+      <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('suppliers')}</h2>
+        <p className="text-gray-600 dark:text-slate-400 mb-4">
+          {t('suppliersImportExportDescription')}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ExcelImportButton
+            buttonLabel={t('importExcelFile')}
+            description={t('importSuppliersDescription')}
+            onImport={handleImportSuppliers}
+            requiredColumns={['Supplier Name', 'Contact Person', 'Email', 'Phone', 'Address']}
+          />
+          <ExcelExportButton
+            buttonLabel={t('exportExcelFile')}
+            data={suppliers}
+            fileName="suppliers_export"
+            sheetName="Suppliers"
+            columns={[
+              { header: 'ID', accessor: 'id' },
+              { header: 'Supplier Name', accessor: 'name' },
+              { header: 'Contact Person', accessor: 'contact' },
+              { header: 'Email', accessor: 'email' },
+              { header: 'Phone', accessor: 'phone' },
+              { header: 'Address', accessor: 'address' },
+            ]}
+          />
+        </div>
+      </div>
 
-      <PurchaseOrdersMultiSheetExportButton
-        purchaseOrders={purchaseOrders}
-        productMap={productMap}
-        supplierMap={supplierMap}
-        warehouseMap={warehouseMap}
-        currencyRates={currencyRates}
-      />
+      {/* Purchase Orders Section */}
+      <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('purchaseOrders')}</h2>
+        <p className="text-gray-600 dark:text-slate-400 mb-4">
+          {t('purchaseOrdersImportExportDescription')}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ExcelImportButton
+            buttonLabel={t('importExcelFile')}
+            description={t('importPurchaseOrdersDescription')}
+            onImport={handleImportPurchaseOrders}
+            requiredColumns={['Supplier Name', 'Warehouse Name', 'Order Date', 'Status', 'Currency', 'Total (AZN)']}
+          />
+          <PurchaseOrdersMultiSheetExportButton
+            buttonLabel={t('exportExcelFileDetailed')}
+            purchaseOrders={purchaseOrders}
+            productMap={productMap}
+            supplierMap={supplierMap}
+            warehouseMap={warehouseMap}
+            currencyRates={currencyRates}
+          />
+        </div>
+      </div>
 
-      <SellOrdersMultiSheetExportButton
-        sellOrders={sellOrders}
-        productMap={productMap}
-        customerMap={customerMap}
-        warehouseMap={warehouseMap}
-      />
+      {/* Sell Orders Section */}
+      <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('sellOrders')}</h2>
+        <p className="text-gray-600 dark:text-slate-400 mb-4">
+          {t('sellOrdersImportExportDescription')}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ExcelImportButton
+            buttonLabel={t('importExcelFile')}
+            description={t('importSellOrdersDescription')}
+            onImport={handleImportSellOrders}
+            requiredColumns={['Customer Name', 'Warehouse Name', 'Order Date', 'Status', 'VAT (%)', 'Total (AZN)']}
+          />
+          <SellOrdersMultiSheetExportButton
+            buttonLabel={t('exportExcelFileDetailed')}
+            sellOrders={sellOrders}
+            productMap={productMap}
+            customerMap={customerMap}
+            warehouseMap={warehouseMap}
+          />
+        </div>
+      </div>
 
-      <ExcelExportButton
-        label={t('exportIncomingPaymentsToExcel')}
-        description={t('exportIncomingPaymentsDescription')}
-        data={incomingPayments.map(p => {
-          let linkedOrderDisplay = '';
-          if (p.orderId === 0) {
-            linkedOrderDisplay = t('manualExpense');
-          } else {
-            const order = sellOrders.find(o => o.id === p.orderId);
-            const customerName = order ? customerMap[order.contactId]?.name || 'Unknown' : 'N/A';
-            linkedOrderDisplay = `${t('orderId')} #${p.orderId} (${customerName})`;
-          }
-          return {
-            ...p,
-            linkedOrderDisplay,
-            paymentCategoryDisplay: p.paymentCategory || 'manual',
-          };
-        })}
-        fileName="incoming_payments_export"
-        sheetName="Incoming Payments"
-        columns={[
-          { header: 'ID', accessor: 'id' },
-          { header: 'Linked Order ID', accessor: 'orderId' },
-          { header: 'Payment Category', accessor: 'paymentCategoryDisplay' },
-          { header: 'Manual Description', accessor: 'manualDescription' },
-          { header: 'Payment Date', accessor: 'date' },
-          { header: 'Amount Paid', accessor: 'amount' },
-          { header: 'Payment Currency', accessor: 'paymentCurrency' },
-          { header: 'Exchange Rate to AZN', accessor: 'paymentExchangeRate' },
-          { header: 'Method', accessor: 'method' },
-        ]}
-      />
+      {/* Incoming Payments Section */}
+      <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('incomingPayments')}</h2>
+        <p className="text-gray-600 dark:text-slate-400 mb-4">
+          {t('incomingPaymentsImportExportDescription')}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ExcelImportButton
+            buttonLabel={t('importExcelFile')}
+            description={t('importIncomingPaymentsDescription')}
+            onImport={handleImportIncomingPayments}
+            requiredColumns={['Payment Date', 'Amount Paid', 'Method', 'Payment Currency']}
+          />
+          <ExcelExportButton
+            buttonLabel={t('exportExcelFile')}
+            data={incomingPayments.map(p => {
+              let linkedOrderDisplay = '';
+              if (p.orderId === 0) {
+                linkedOrderDisplay = t('manualExpense');
+              } else {
+                const order = sellOrders.find(o => o.id === p.orderId);
+                const customerName = order ? customerMap[order.contactId]?.name || 'Unknown' : 'N/A';
+                linkedOrderDisplay = `${t('orderId')} #${p.orderId} (${customerName})`;
+              }
+              return {
+                ...p,
+                linkedOrderDisplay,
+                paymentCategoryDisplay: p.paymentCategory || 'manual',
+              };
+            })}
+            fileName="incoming_payments_export"
+            sheetName="Incoming Payments"
+            columns={[
+              { header: 'ID', accessor: 'id' },
+              { header: 'Linked Order ID', accessor: 'orderId' },
+              { header: 'Payment Category', accessor: 'paymentCategoryDisplay' },
+              { header: 'Manual Description', accessor: 'manualDescription' },
+              { header: 'Payment Date', accessor: 'date' },
+              { header: 'Amount Paid', accessor: 'amount' },
+              { header: 'Payment Currency', accessor: 'paymentCurrency' },
+              { header: 'Exchange Rate to AZN', accessor: 'paymentExchangeRate' },
+              { header: 'Method', accessor: 'method' },
+            ]}
+          />
+        </div>
+      </div>
 
-      <ExcelExportButton
-        label={t('exportOutgoingPaymentsToExcel')}
-        description={t('exportOutgoingPaymentsDescription')}
-        data={outgoingPayments.map(p => {
-          let linkedOrderDisplay = '';
-          if (p.orderId === 0) {
-            linkedOrderDisplay = t('manualExpense');
-          } else {
-            const order = purchaseOrders.find(o => o.id === p.orderId);
-            const supplierName = order ? supplierMap[order.contactId]?.name || 'Unknown' : 'N/A';
-            const categoryText = p.paymentCategory === 'products' ? t('paymentForProducts') : (p.paymentCategory === 'fees' ? t('paymentForFees') : '');
-            linkedOrderDisplay = `${t('orderId')} #${p.orderId} (${supplierName}) ${categoryText}`;
-          }
-          return {
-            ...p,
-            linkedOrderDisplay,
-            paymentCategoryDisplay: p.paymentCategory || 'manual',
-          };
-        })}
-        fileName="outgoing_payments_export"
-        sheetName="Outgoing Payments"
-        columns={[
-          { header: 'ID', accessor: 'id' },
-          { header: 'Linked Order ID', accessor: 'orderId' },
-          { header: 'Payment Category', accessor: 'paymentCategoryDisplay' },
-          { header: 'Manual Description', accessor: 'manualDescription' },
-          { header: 'Payment Date', accessor: 'date' },
-          { header: 'Amount Paid', accessor: 'amount' },
-          { header: 'Payment Currency', accessor: 'paymentCurrency' },
-          { header: 'Exchange Rate to AZN', accessor: 'paymentExchangeRate' },
-          { header: 'Method', accessor: 'method' },
-        ]}
-      />
+      {/* Outgoing Payments Section */}
+      <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('outgoingPayments')}</h2>
+        <p className="text-gray-600 dark:text-slate-400 mb-4">
+          {t('outgoingPaymentsImportExportDescription')}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ExcelImportButton
+            buttonLabel={t('importExcelFile')}
+            description={t('importOutgoingPaymentsDescription')}
+            onImport={handleImportOutgoingPayments}
+            requiredColumns={['Payment Date', 'Amount Paid', 'Method', 'Payment Currency']}
+          />
+          <ExcelExportButton
+            buttonLabel={t('exportExcelFile')}
+            data={outgoingPayments.map(p => {
+              let linkedOrderDisplay = '';
+              if (p.orderId === 0) {
+                linkedOrderDisplay = t('manualExpense');
+              } else {
+                const order = purchaseOrders.find(o => o.id === p.orderId);
+                const supplierName = order ? supplierMap[order.contactId]?.name || 'Unknown' : 'N/A';
+                const categoryText = p.paymentCategory === 'products' ? t('paymentForProducts') : (p.paymentCategory === 'fees' ? t('paymentForFees') : '');
+                linkedOrderDisplay = `${t('orderId')} #${p.orderId} (${supplierName}) ${categoryText}`;
+              }
+              return {
+                ...p,
+                linkedOrderDisplay,
+                paymentCategoryDisplay: p.paymentCategory || 'manual',
+              };
+            })}
+            fileName="outgoing_payments_export"
+            sheetName="Outgoing Payments"
+            columns={[
+              { header: 'ID', accessor: 'id' },
+              { header: 'Linked Order ID', accessor: 'orderId' },
+              { header: 'Payment Category', accessor: 'paymentCategoryDisplay' },
+              { header: 'Manual Description', accessor: 'manualDescription' },
+              { header: 'Payment Date', accessor: 'date' },
+              { header: 'Amount Paid', accessor: 'amount' },
+              { header: 'Payment Currency', accessor: 'paymentCurrency' },
+              { header: 'Exchange Rate to AZN', accessor: 'paymentExchangeRate' },
+              { header: 'Method', accessor: 'method' },
+            ]}
+          />
+        </div>
+      </div>
 
-      <ExcelExportButton
-        label={t('exportProductMovementsToExcel')}
-        description={t('exportProductMovementsDescription')}
-        data={productMovements.map(pm => ({
-          ...pm,
-          sourceWarehouseName: warehouseMap[pm.sourceWarehouseId]?.name || 'N/A',
-          destWarehouseName: warehouseMap[pm.destWarehouseId]?.name || 'N/A',
-          itemsString: formatMovementItems(pm.items, productMap),
-        }))}
-        fileName="product_movements_export"
-        sheetName="Product Movements"
-        columns={[
-          { header: 'ID', accessor: 'id' },
-          { header: 'Source Warehouse Name', accessor: 'sourceWarehouseName' },
-          { header: 'Destination Warehouse Name', accessor: 'destWarehouseName' },
-          { header: 'Movement Date', accessor: 'date' },
-          { header: 'Items', accessor: 'itemsString' },
-        ]}
-      />
-
-      {/* Excel Import Sections */}
-      <ExcelImportButton
-        label={t('importProductsFromExcel')}
-        description={t('importProductsDescription')}
-        onImport={handleImportProducts}
-        requiredColumns={['Product Name', 'SKU', 'Category', 'Description', 'Min. Stock', 'Avg. Landed Cost', 'Image URL']}
-      />
-
-      <ExcelImportButton
-        label={t('importCustomersFromExcel')}
-        description={t('importCustomersDescription')}
-        onImport={handleImportCustomers}
-        requiredColumns={['Customer Name', 'Contact Person', 'Email', 'Phone', 'Address']}
-      />
-
-      <ExcelImportButton
-        label={t('importSuppliersFromExcel')}
-        description={t('importSuppliersDescription')}
-        onImport={handleImportSuppliers}
-        requiredColumns={['Supplier Name', 'Contact Person', 'Email', 'Phone', 'Address']}
-      />
-
-      <ExcelImportButton
-        label={t('importPurchaseOrdersFromExcel')}
-        description={t('importPurchaseOrdersDescription')}
-        onImport={handleImportPurchaseOrders}
-        requiredColumns={['Supplier Name', 'Warehouse Name', 'Order Date', 'Status', 'Currency', 'Total (AZN)']}
-      />
-
-      <ExcelImportButton
-        label={t('importSellOrdersFromExcel')}
-        description={t('importSellOrdersDescription')}
-        onImport={handleImportSellOrders}
-        requiredColumns={['Customer Name', 'Warehouse Name', 'Order Date', 'Status', 'VAT (%)', 'Total (AZN)']}
-      />
-
-      <ExcelImportButton
-        label={t('importIncomingPaymentsFromExcel')}
-        description={t('importIncomingPaymentsDescription')}
-        onImport={handleImportIncomingPayments}
-        requiredColumns={['Payment Date', 'Amount Paid', 'Method', 'Payment Currency']}
-      />
-
-      <ExcelImportButton
-        label={t('importOutgoingPaymentsFromExcel')}
-        description={t('importOutgoingPaymentsDescription')}
-        onImport={handleImportOutgoingPayments}
-        requiredColumns={['Payment Date', 'Amount Paid', 'Method', 'Payment Currency']}
-      />
-
-      <ExcelImportButton
-        label={t('importProductMovementsFromExcel')}
-        description={t('importProductMovementsDescription')}
-        onImport={handleImportProductMovements}
-        requiredColumns={['Source Warehouse Name', 'Destination Warehouse Name', 'Movement Date']}
-      />
+      {/* Product Movements Section */}
+      <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('productMovement')}</h2>
+        <p className="text-gray-600 dark:text-slate-400 mb-4">
+          {t('productMovementsImportExportDescription')}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ExcelImportButton
+            buttonLabel={t('importExcelFile')}
+            description={t('importProductMovementsDescription')}
+            onImport={handleImportProductMovements}
+            requiredColumns={['Source Warehouse Name', 'Destination Warehouse Name', 'Movement Date']}
+          />
+          <ExcelExportButton
+            buttonLabel={t('exportExcelFile')}
+            data={productMovements.map(pm => ({
+              ...pm,
+              sourceWarehouseName: warehouseMap[pm.sourceWarehouseId]?.name || 'N/A',
+              destWarehouseName: warehouseMap[pm.destWarehouseId]?.name || 'N/A',
+              itemsString: formatMovementItems(pm.items, productMap),
+            }))}
+            fileName="product_movements_export"
+            sheetName="Product Movements"
+            columns={[
+              { header: 'ID', accessor: 'id' },
+              { header: 'Source Warehouse Name', accessor: 'sourceWarehouseName' },
+              { header: 'Destination Warehouse Name', accessor: 'destWarehouseName' },
+              { header: 'Movement Date', accessor: 'date' },
+              { header: 'Items', accessor: 'itemsString' },
+            ]}
+          />
+        </div>
+      </div>
     </div>
   );
 };

@@ -11,7 +11,7 @@ const i18n = {
     defaultMarkup: 'Default Sales Markup (%)',
     saveDefaultMarkup: 'Save Markup',
     markupUpdated: 'Default markup updated.',
-    paymentMethodPlaceholder: 'e.g., Bank Transfer, Cash',
+        paymentMethodPlaceholder: 'e.g., Bank Transfer, Cash',
     amountPaid: 'Amount Paid',
     paymentDate: 'Payment Date',
     linkedSellOrder: 'Linked Sell Order',
@@ -63,49 +63,46 @@ const i18n = {
     areYouSure: 'Are You Sure?',
     productSubtotalNative: 'Product Subtotal (Native)',
     stockAvailable: 'Stock Available',
-    exportDataToJson: 'Export Data to JSON', // Updated translation
+    exportDataToJson: 'Export Data to JSON',
     export: 'Export',
     noProductsToAnalyze: 'No products to analyze for this period.',
     cancel: 'Cancel',
-    fees: 'Fees', // New translation
-    selectSupplier: 'Select Supplier', // New translation
-    selectWarehouse: 'Select Warehouse', // New translation
-    selectCustomer: 'Select Customer', // New translation
-    detailsForOrder: 'Details for Order', // New translation
-    costOfGoodsSold: 'Cost of Goods Sold', // New translation
-    vatCollectedFromSales: 'VAT Collected From Sales', // New translation
-    chooseJsonFile: 'Choose JSON File', // New translation
-    searchProductBySku: 'Search product by name or SKU...', // New translation
-    noProductFound: 'No product found.', // New translation
-    generateProductMovement: 'Generate Product Movement', // New translation
-    warehouseType: 'Warehouse Type', // New translation
-    mainWarehouseType: 'Main', // New translation
-    secondaryWarehouseType: 'Secondary', // New translation
-    selectWarehouseType: 'Select Warehouse Type', // New translation
-    onlyOneMainWarehouse: 'Only one warehouse can be designated as Main. Please change the existing Main warehouse first.', // New translation
-    validationError: 'Validation Error', // New translation
-    mainWarehouseNotFound: 'Main Warehouse not found. Please ensure a warehouse of type "Main" exists.', // New translation
-    selectDestinationWarehouse: 'Please select a destination warehouse for the sell order first.', // New translation
-    movementNotNeeded: 'The sell order is already linked to the Main Warehouse. No movement needed.', // New translation
-    noValidProductsForMovement: 'No valid products in the sell order to generate a movement for.', // New translation
-    productMovementAlreadyGenerated: 'A product movement has been generated for this sell order.', // New translation
-    totalLandedCost: 'Total Landed Cost', // New translation
-    paymentForProducts: 'Payment for Products', // New translation
-    paymentForFees: 'Payment for Fees', // New translation
-    productsTotal: 'Products Total', // New translation
-    feesTotal: 'Fees Total', // New translation
-    itemTotal: 'Item Total', // New translation
-    searchBySku: 'Search by SKU', // New translation
-    enterSku: 'Enter SKU...', // New translation
-    totalVat: 'Total VAT', // New translation
-    totalCleanProfit: 'Total Clean Profit', // New translation
-    landedCost: 'Landed Cost', // New translation
-    // New translations for Excel Import
-    importProductsFromExcel: 'Import Products from Excel',
-    importProductsDescription: 'Upload an Excel file (.xlsx or .xls) to import your product list. The file should have columns like "Product Name", "SKU", "Category", "Description", "Min. Stock", "Avg. Landed Cost", "Image URL". Existing products with the same SKU will be skipped.',
-    importCustomersFromExcel: 'Import Customers from Excel',
-    importCustomersDescription: 'Upload an Excel file (.xlsx or .xls) to import your customer list. The file should have columns like "Customer Name", "Contact Person", "Email", "Phone", "Address". Existing customers with the same email will be skipped.',
-    importExcelFile: 'Import Excel File',
+    fees: 'Fees',
+    selectSupplier: 'Select Supplier',
+    selectWarehouse: 'Select Warehouse',
+    selectCustomer: 'Select Customer',
+    detailsForOrder: 'Details for Order',
+    costOfGoodsSold: 'Cost of Goods Sold',
+    vatCollectedFromSales: 'VAT Collected From Sales',
+    chooseJsonFile: 'Choose JSON File',
+    searchProductBySku: 'Search product by name or SKU...',
+    noProductFound: 'No product found.',
+    generateProductMovement: 'Generate Product Movement',
+    warehouseType: 'Warehouse Type',
+    mainWarehouseType: 'Main',
+    secondaryWarehouseType: 'Secondary',
+    selectWarehouseType: 'Select Warehouse Type',
+    onlyOneMainWarehouse: 'Only one warehouse can be designated as Main. Please change the existing Main warehouse first.',
+    validationError: 'Validation Error',
+    mainWarehouseNotFound: 'Main Warehouse not found. Please ensure a warehouse of type "Main" exists.',
+    selectDestinationWarehouse: 'Please select a destination warehouse for the sell order first.',
+    movementNotNeeded: 'The sell order is already linked to the Main Warehouse. No movement needed.',
+    noValidProductsForMovement: 'No valid products in the sell order to generate a movement for.',
+    productMovementAlreadyGenerated: 'A product movement has been generated for this sell order.',
+    totalLandedCost: 'Total Landed Cost',
+    paymentForProducts: 'Payment for Products',
+    paymentForFees: 'Payment for Fees',
+    productsTotal: 'Products Total',
+    feesTotal: 'Fees Total',
+    itemTotal: 'Item Total',
+    searchBySku: 'Search by SKU',
+    enterSku: 'Enter SKU...',
+    totalVat: 'Total VAT',
+    totalCleanProfit: 'Total Clean Profit',
+    landedCost: 'Landed Cost',
+    importExcelFile: 'Import Excel File', // Generic import button label
+    exportExcelFile: 'Export Excel File', // Generic export button label
+    exportExcelFileDetailed: 'Export Excel File (Detailed)', // For multi-sheet exports
     excelImportSuccess: 'Excel Import Success',
     excelImportError: 'Excel Import Error',
     noFileSelected: 'No file selected.',
@@ -116,13 +113,11 @@ const i18n = {
     excelImportInfo: 'Excel Import Info',
     duplicateProductsSkipped: 'Some products were skipped because their SKUs already exist.',
     duplicateCustomersSkipped: 'Some customers were skipped because their emails already exist.',
-    // New translations for Erase All Data
     eraseAllData: 'Erase All Data',
     eraseAllDataDescription: 'This action will permanently delete ALL application data stored locally and reset the application to its initial state. This cannot be undone.',
     eraseAllDataWarning: 'Are you absolutely sure you want to erase all data? This action is irreversible and will reset the application to its default state.',
-    eraseAllData100PercentSure: 'Are you 100% sure? This action is irreversible.', // New translation
+    eraseAllData100PercentSure: 'Are you 100% sure? This action is irreversible.',
     allDataErased: 'All application data has been erased.',
-    // New translations for code confirmation
     finalConfirmation: 'Final Confirmation',
     enterCodeToConfirm: 'To confirm, please type the following 4-digit code:',
     enterCode: 'Enter Code',
@@ -130,8 +125,7 @@ const i18n = {
     confirmErase: 'Confirm Erase',
     codeMismatchError: 'Code Mismatch',
     pleaseEnterCorrectCode: 'Please enter the correct code to proceed.',
-    filterByProduct: 'Filter by Product', // New translation
-    // New translations for Order Details Export
+    filterByProduct: 'Filter by Product',
     exportToExcel: 'Export to Excel',
     orderSummary: 'Order Summary',
     orderItems: 'Order Items',
@@ -142,43 +136,16 @@ const i18n = {
     exportedSuccessfully: 'exported successfully',
     exportError: 'Export Error',
     totalRevenueExVat: 'Total Revenue (Excl. VAT)',
-    fullyPaid: 'Fully Paid', // New translation
-    // New translations for additional Excel import/export options
-    exportSuppliersToExcel: 'Export Suppliers to Excel',
-    exportSuppliersDescription: 'Download your current supplier list as an Excel file.',
-    importSuppliersFromExcel: 'Import Suppliers from Excel',
-    importSuppliersDescription: 'Upload an Excel file (.xlsx or .xls) to import your supplier list. The file should have columns like "Supplier Name", "Contact Person", "Email", "Phone", "Address". Existing suppliers with the same email will be skipped.',
-    duplicateSuppliersSkipped: 'Some suppliers were skipped because their emails already exist.',
-
-    exportPurchaseOrdersToExcel: 'Export Purchase Orders to Excel',
-    exportPurchaseOrdersDescription: 'Download your current purchase orders as an Excel file. Items are summarized in a single column.',
-    importPurchaseOrdersFromExcel: 'Import Purchase Orders from Excel',
-    importPurchaseOrdersDescription: 'Upload an Excel file (.xlsx or .xls) to import purchase orders. Required columns: "Supplier Name", "Warehouse Name", "Order Date", "Status", "Currency", "Total (AZN)". Note: Order items cannot be imported via this method and must be added manually after import.',
-    exportPurchaseOrdersToExcelMultiSheet: 'Export Purchase Orders to Excel (Detailed)',
-    exportPurchaseOrdersDescriptionMultiSheet: 'Download your current purchase orders as an Excel file, with each order on a separate sheet containing detailed summary, items, and fees.',
-
-    exportSellOrdersToExcel: 'Export Sell Orders to Excel',
-    exportSellOrdersDescription: 'Download your current sell orders as an Excel file. Items are summarized in a single column.',
-    importSellOrdersFromExcel: 'Import Sell Orders from Excel',
-    importSellOrdersDescription: 'Upload an Excel file (.xlsx or .xls) to import sell orders. Required columns: "Customer Name", "Warehouse Name", "Order Date", "Status", "VAT (%)", "Total (AZN)". Note: Order items cannot be imported via this method and must be added manually after import.',
-    exportSellOrdersToExcelMultiSheet: 'Export Sell Orders to Excel (Detailed)', // New translation
-    exportSellOrdersDescriptionMultiSheet: 'Download your current sell orders as an Excel file, with each order on a separate sheet containing detailed summary and items.', // New translation
-
-    exportIncomingPaymentsToExcel: 'Export Incoming Payments to Excel',
-    exportIncomingPaymentsDescription: 'Download your current incoming payments as an Excel file.',
-    importIncomingPaymentsFromExcel: 'Import Incoming Payments from Excel',
-    importIncomingPaymentsDescription: 'Upload an Excel file (.xlsx or .xls) to import incoming payments. Required columns: "Payment Date", "Amount Paid", "Method", "Payment Currency". Optionally include "Linked Order ID", "Payment Category", "Manual Description", "Exchange Rate to AZN".',
-
-    exportOutgoingPaymentsToExcel: 'Export Outgoing Payments to Excel',
-    exportOutgoingPaymentsDescription: 'Download your current outgoing payments as an Excel file.',
-    importOutgoingPaymentsFromExcel: 'Import Outgoing Payments from Excel',
-    importOutgoingPaymentsDescription: 'Upload an Excel file (.xlsx or .xls) to import outgoing payments. Required columns: "Payment Date", "Amount Paid", "Method", "Payment Currency". Optionally include "Linked Order ID", "Payment Category", "Manual Description", "Exchange Rate to AZN".',
-
-    exportProductMovementsToExcel: 'Export Product Movements to Excel',
-    exportProductMovementsDescription: 'Download your current product movements as an Excel file. Items are summarized in a single column.',
-    importProductMovementsFromExcel: 'Import Product Movements from Excel',
-    importProductMovementsDescription: 'Upload an Excel file (.xlsx or .xls) to import product movements. Required columns: "Source Warehouse Name", "Destination Warehouse Name", "Movement Date". Note: Movement items cannot be imported via this method and must be added manually after import.',
-
+    fullyPaid: 'Fully Paid',
+    // Consolidated descriptions
+    productsImportExportDescription: 'Manage your product data by importing new products or exporting your existing product list to an Excel file.',
+    customersImportExportDescription: 'Manage your customer data by importing new customers or exporting your existing customer list to an Excel file.',
+    suppliersImportExportDescription: 'Manage your supplier data by importing new suppliers or exporting your existing supplier list to an Excel file.',
+    purchaseOrdersImportExportDescription: 'Import new purchase orders (items must be added manually) or export detailed purchase orders, with each order on a separate sheet.',
+    sellOrdersImportExportDescription: 'Import new sell orders (items must be added manually) or export detailed sell orders, with each order on a separate sheet.',
+    incomingPaymentsImportExportDescription: 'Import new incoming payments or export your existing incoming payment records.',
+    outgoingPaymentsImportExportDescription: 'Import new outgoing payments or export your existing outgoing payment records.',
+    productMovementsImportExportDescription: 'Import new product movements (items must be added manually) or export your existing product movement records.',
     itemsNotImportedWarning: 'Order/Movement items were not imported and must be added manually.',
     importErrorsFound: 'Import errors found',
     settings: 'Settings',
