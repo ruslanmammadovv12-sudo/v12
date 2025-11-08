@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { PurchaseOrder, Product, Supplier, Warehouse } from '@/types'; // Import types from types file
+import OrderDetailsExcelExportButton from '@/components/OrderDetailsExcelExportButton'; // Import new component
 
 type SortConfig = {
   key: keyof PurchaseOrder | 'supplierName' | 'warehouseName' | 'totalItems' | 'totalValueNative';
@@ -421,7 +422,7 @@ const PurchaseOrders: React.FC = () => {
                       <TableCell className="p-2">{product?.name || 'N/A'}</TableCell>
                       <TableCell className="p-2">{item.qty}</TableCell>
                       <TableCell className="p-2">{item.price?.toFixed(2)} {item.currency || selectedOrderDetails.currency}</TableCell>
-                      <TableCell className="p-2">{item.landedCostPerUnit?.toFixed(2)} AZN</TableCell>
+                      <TableCell className="p-2">{item.landedCostPerUnit?.toFixed(2)} AZN}</TableCell>
                       <TableCell className="p-2">{itemTotalLandedAZN.toFixed(2)} AZN}</TableCell>
                     </TableRow>
                   );
@@ -477,6 +478,15 @@ const PurchaseOrders: React.FC = () => {
                 })()}
               </TableFooter>
             </Table>
+            <OrderDetailsExcelExportButton
+              order={selectedOrderDetails}
+              orderType="purchase"
+              productMap={productMap}
+              customerMap={{}} // Not needed for PO
+              supplierMap={suppliers.reduce((acc, s) => ({ ...acc, [s.id]: s }), {} as { [key: number]: Supplier })}
+              warehouseMap={warehouses.reduce((acc, w) => ({ ...acc, [w.id]: w }), {} as { [key: number]: Warehouse })}
+              currencyRates={currencyRates}
+            />
           </div>
         )}
       </FormModal>

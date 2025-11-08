@@ -140,6 +140,17 @@ const i18n = {
     codeMismatchError: 'Code Mismatch',
     pleaseEnterCorrectCode: 'Please enter the correct code to proceed.',
     filterByProduct: 'Filter by Product', // New translation
+    // New translations for Order Details Export
+    exportToExcel: 'Export to Excel',
+    orderSummary: 'Order Summary',
+    orderItems: 'Order Items',
+    orderFees: 'Order Fees',
+    feeType: 'Fee Type',
+    amount: 'Amount',
+    order: 'Order',
+    exportedSuccessfully: 'exported successfully',
+    exportError: 'Export Error',
+    totalRevenueExVat: 'Total Revenue (Excl. VAT)',
   }
 };
 

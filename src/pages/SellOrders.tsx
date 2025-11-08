@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command'; // Added Command components
 import { cn } from '@/lib/utils'; // Added cn utility
 import { SellOrder, Product, Customer, Warehouse } from '@/types'; // Import types from types file
+import OrderDetailsExcelExportButton from '@/components/OrderDetailsExcelExportButton'; // Import new component
 
 type SortConfig = {
   key: keyof SellOrder | 'customerName' | 'warehouseName' | 'totalItems' | 'totalValueAZN' | 'paymentStatus';
@@ -22,7 +23,7 @@ type SortConfig = {
 };
 
 const SellOrders: React.FC = () => {
-  const { sellOrders, customers, warehouses, products, incomingPayments, deleteItem, showAlertModal } = useData();
+  const { sellOrders, customers, warehouses, products, incomingPayments, deleteItem, showAlertModal, currencyRates } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState<number | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'orderDate', direction: 'descending' });
@@ -448,6 +449,15 @@ const SellOrders: React.FC = () => {
                 </TableRow>
               </TableFooter>
             </Table>
+            <OrderDetailsExcelExportButton
+              order={selectedOrderDetails}
+              orderType="sell"
+              productMap={productMap}
+              customerMap={customers.reduce((acc, c) => ({ ...acc, [c.id]: c }), {} as { [key: number]: Customer })}
+              supplierMap={{}} // Not needed for SO
+              warehouseMap={warehouses.reduce((acc, w) => ({ ...acc, [w.id]: w }), {} as { [key: number]: Warehouse })}
+              currencyRates={currencyRates}
+            />
           </div>
         )}
       </FormModal>
