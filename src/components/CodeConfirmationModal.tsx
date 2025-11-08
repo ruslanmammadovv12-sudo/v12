@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { t } from '@/utils/i18n';
 import { toast } from 'sonner';
+// No types from src/types/index.ts are directly used here, so no import needed.
 
 interface CodeConfirmationModalProps {
   isOpen: boolean;

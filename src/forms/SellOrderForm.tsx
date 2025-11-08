@@ -9,6 +9,7 @@ import { ArrowRight } from 'lucide-react';
 import { t } from '@/utils/i18n';
 import { useSellOrderForm } from '@/hooks/useSellOrderForm';
 import SellOrderItemsField from '@/components/SellOrderItemsField';
+import { Product, Customer, Warehouse } from '@/types'; // Import types from types file
 
 interface SellOrderFormProps {
   orderId?: number;

@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useData, Product } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import ImageUpload from '@/components/ImageUpload';
 import { t } from '@/utils/i18n';
+import { Product } from '@/types'; // Import types from types file
 
 interface ProductFormProps {
   productId?: number;

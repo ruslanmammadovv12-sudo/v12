@@ -4,6 +4,7 @@ import React from 'react';
 import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { AlertCircle } from 'lucide-react';
+import { Product, SellOrder, Payment, CurrencyRates } from '@/types'; // Import types from types file
 
 const Dashboard: React.FC = () => {
   const { products, sellOrders, incomingPayments, currencyRates } = useData();

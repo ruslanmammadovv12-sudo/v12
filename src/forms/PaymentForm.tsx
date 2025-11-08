@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useData, Payment, SellOrder, PurchaseOrder } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { t } from '@/utils/i18n';
-import { MOCK_CURRENT_DATE } from '@/context/DataContext';
+import { Payment, SellOrder, PurchaseOrder } from '@/types'; // Import types from types file
 
 interface PaymentFormProps {
   paymentId?: number;

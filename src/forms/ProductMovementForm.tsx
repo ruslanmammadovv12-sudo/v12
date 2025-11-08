@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useData, ProductMovement, Product, Warehouse } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { t } from '@/utils/i18n';
-import { MOCK_CURRENT_DATE } from '@/context/DataContext';
+import { ProductMovement, Product, Warehouse } from '@/types'; // Import types from types file
 
 interface ProductMovementFormProps {
   movementId?: number;

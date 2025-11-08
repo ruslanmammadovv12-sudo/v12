@@ -5,8 +5,8 @@ import { toast as sonnerToast } from 'sonner';
 import { t } from '@/utils/i18n';
 import {
   Product, Supplier, Customer, Warehouse, PurchaseOrder, SellOrder, Payment, ProductMovement,
-  initialData,
-} from '@/context/DataContext'; // Import initialData and all types
+  initialData, // initialData is still from DataContext, as it uses the types
+} from '@/types'; // Import all types from types file
 
 interface UseCrudOperationsProps {
   products: Product[];

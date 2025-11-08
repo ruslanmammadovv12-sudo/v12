@@ -9,7 +9,7 @@ import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { t } from '@/utils/i18n';
-import { Product } from '@/context/DataContext';
+import { Product } from '@/types'; // Import types from types file
 
 interface SellOrderItemState {
   productId: number | '';

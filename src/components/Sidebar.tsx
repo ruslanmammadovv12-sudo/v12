@@ -7,6 +7,7 @@ import { useData } from '@/context/DataContext';
 import {
   Home, Package, ShoppingCart, DollarSign, Users, Truck, Warehouse, TrendingUp, BarChart, Settings, UploadCloud, ArrowLeftRight,
 } from 'lucide-react';
+import { Settings as SettingsType } from '@/types'; // Import Settings type with an alias
 
 const navItems = [
   { id: 'dashboard', icon: <Home className="w-6 h-6 mr-3" /> },

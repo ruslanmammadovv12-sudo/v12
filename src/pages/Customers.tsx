@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useData, Customer } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import FormModal from '@/components/FormModal';
 import CustomerForm from '@/forms/CustomerForm';
 import { PlusCircle } from 'lucide-react';
+import { Customer } from '@/types'; // Import types from types file
 
 type SortConfig = {
   key: keyof Customer;

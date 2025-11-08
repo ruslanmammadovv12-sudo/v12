@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react'; // Added useEffect
-import { useData, ProductMovement, Product } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'; // Added Label
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Added Popover components
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command'; // Added Command components
 import { cn } from '@/lib/utils'; // Added cn utility
+import { ProductMovement, Product } from '@/types'; // Import types from types file
 
 type SortConfig = {
   key: keyof ProductMovement | 'sourceWarehouseName' | 'destWarehouseName' | 'totalItems';

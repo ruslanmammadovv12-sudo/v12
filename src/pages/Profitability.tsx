@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { useData, Product, SellOrder } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Product, SellOrder, PurchaseOrder } from '@/types'; // Import types from types file
 
 type SortConfig = {
   key: 'productName' | 'sku' | 'qtySold' | 'totalSales' | 'totalCOGS' | 'cleanProfit' | 'salesPercentage' | 'daysInStock';

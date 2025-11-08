@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { useData } from '@/context/DataContext';
 import { MadeWithDyad } from '@/components/made-with-dyad';
+import { Settings } from '@/types'; // Import types from types file
 
 interface MainLayoutProps {
   children: React.ReactNode;

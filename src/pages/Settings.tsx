@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useData, Settings, CurrencyRates, Product, Customer } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext'; // MOCK_CURRENT_DATE is still from DataContext
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import ImageUpload from '@/components/ImageUpload';
 import { toast } from 'sonner';
 import CodeConfirmationModal from '@/components/CodeConfirmationModal'; // Import the new component
+import { Settings, CurrencyRates, Product, Customer } from '@/types'; // Import types from types file
 
 const SettingsPage: React.FC = () => {
   const { settings, setSettings, currencyRates, setCurrencyRates, showConfirmationModal } = useData();

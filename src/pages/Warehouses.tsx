@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useData, Warehouse, Product } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
@@ -9,6 +9,7 @@ import FormModal from '@/components/FormModal';
 import WarehouseForm from '@/forms/WarehouseForm';
 import { ChevronRight, PlusCircle, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { Product, Warehouse } from '@/types'; // Import types from types file
 
 type SortConfig = {
   key: keyof Product | 'quantity' | 'priceWithMarkupCalc' | 'priceWithMarkupPlusVat';
@@ -214,7 +215,7 @@ const Warehouses: React.FC = () => {
                             <TableCell className="p-2">{p.priceWithMarkupCalc > 0 ? `${p.priceWithMarkupCalc.toFixed(2)} AZN` : 'N/A'}</TableCell>
                             <TableCell className="p-2">{p.priceWithMarkupPlusVat > 0 ? `${p.priceWithMarkupPlusVat.toFixed(2)} AZN` : 'N/A'}</TableCell>
                             <TableCell className="p-2 font-semibold">{(p.priceWithMarkupCalc * p.quantity).toFixed(2)} AZN</TableCell>
-                            <TableCell className="p-2 font-semibold text-sky-600 dark:text-sky-400">{(p.priceWithMarkupPlusVat * p.quantity).toFixed(2)} AZN</TableCell>
+                            <TableCell className="p-2 font-semibold text-sky-600 dark:text-sky-400">{(p.priceWithMarkupPlusVat * p.quantity).toFixed(2)} AZN}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

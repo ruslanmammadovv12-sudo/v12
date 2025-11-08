@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { useData, PurchaseOrder, SellOrder, Payment } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { BarChart, DollarSign, TrendingUp, Wallet } from 'lucide-react';
-import { MOCK_CURRENT_DATE } from '@/context/DataContext';
+import { PurchaseOrder, SellOrder, Payment, Product } from '@/types'; // Import types from types file
 
 const Finance: React.FC = () => {
-  const { purchaseOrders, sellOrders, incomingPayments, outgoingPayments, products } = useData();
+  const { purchaseOrders, sellOrders, incomingPayments, outgoingPayments, products, currencyRates } = useData();
   const [period, setPeriod] = useState<'allTime' | 'thisYear' | 'thisMonth' | 'thisWeek' | 'today'>('allTime');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -112,7 +112,7 @@ const Finance: React.FC = () => {
       totalOutgoing,
       netCashFlow,
     };
-  }, [purchaseOrders, sellOrders, incomingPayments, outgoingPayments, products, effectiveStartDate, effectiveEndDate]);
+  }, [purchaseOrders, sellOrders, incomingPayments, outgoingPayments, products, effectiveStartDate, effectiveEndDate, currencyRates]);
 
   return (
     <div className="container mx-auto p-4">

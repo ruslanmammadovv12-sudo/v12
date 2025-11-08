@@ -6,6 +6,7 @@ import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import { t } from '@/utils/i18n';
+import { Product, Customer } from '@/types'; // Import types from types file
 
 interface ExcelExportButtonProps {
   data: any[];

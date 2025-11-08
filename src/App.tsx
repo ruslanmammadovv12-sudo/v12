@@ -21,6 +21,7 @@ import Profitability from "./pages/Profitability"; // New import
 import DataImportExport from "./pages/DataImportExport"; // New import
 import SettingsPage from "./pages/Settings";       // New import (renamed to avoid conflict with 'Settings' type)
 import NotFound from "./pages/NotFound";
+import { MOCK_CURRENT_DATE } from "./context/DataContext"; // Import MOCK_CURRENT_DATE
 
 const queryClient = new QueryClient();
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from 'react';
-import { Product, PurchaseOrder, SellOrder } from '@/context/DataContext'; // Import necessary types
+import { Product, PurchaseOrder, SellOrder } from '@/types'; // Import necessary types from types file
 
 interface UseInventoryManagementProps {
   products: Product[];

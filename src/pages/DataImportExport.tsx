@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from 'react'; // Import useRef
-import { useData, Product, Customer } from '@/context/DataContext'; // Import Product and Customer types
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext'; // Import MOCK_CURRENT_DATE from DataContext
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Download, UploadCloud } from 'lucide-react'; // Add UploadCloud icon
 import ExcelImportButton from '@/components/ExcelImportButton'; // Import the new component
 import ExcelExportButton from '@/components/ExcelExportButton'; // Import the new ExcelExportButton
+import { Product, Customer } from '@/types'; // Import Product and Customer types from types file
 
 const DataImportExport: React.FC = () => {
   const {

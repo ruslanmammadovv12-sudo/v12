@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useData, SellOrder, Product, Customer, Warehouse, OrderItem, ProductMovement, MOCK_CURRENT_DATE } from '@/context/DataContext';
+import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { toast } from 'sonner';
+import { SellOrder, Product, Customer, Warehouse, OrderItem, ProductMovement } from '@/types'; // Import types from types file
 
 interface SellOrderItemState {
   productId: number | '';
