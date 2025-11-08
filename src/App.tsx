@@ -20,7 +20,7 @@ import Finance from "./pages/Finance";             // New import
 import Profitability from "./pages/Profitability"; // New import
 import DataImportExport from "./pages/DataImportExport"; // New import
 import SettingsPage from "./pages/Settings";       // New import (renamed to avoid conflict with 'Settings' type)
-import RecycleBin from "./pages/RecycleBin";       // New import for RecycleBin
+// Removed RecycleBin import
 import NotFound from "./pages/NotFound";
 import { MOCK_CURRENT_DATE } from "./context/DataContext"; // Import MOCK_CURRENT_DATE
 
@@ -48,7 +48,7 @@ const App = () => (
             <Route path="/profitability" element={<MainLayout><Profitability /></MainLayout>} /> {/* New Route */}
             <Route path="/data-import-export" element={<MainLayout><DataImportExport /></MainLayout>} /> {/* New Route */}
             <Route path="/settings" element={<MainLayout><SettingsPage /></MainLayout>} />       {/* New Route */}
-            <Route path="/recycle-bin" element={<MainLayout><RecycleBin /></MainLayout>} />     {/* New Route for Recycle Bin */}
+            {/* Removed Recycle Bin Route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

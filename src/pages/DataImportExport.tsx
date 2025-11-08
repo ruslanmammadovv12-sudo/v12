@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Download, UploadCloud } from 'lucide-react';
+import { Download, UploadCloud, Trash2, RotateCcw, XCircle } from 'lucide-react'; // Added Recycle Bin icons
 import ExcelImportButton from '@/components/ExcelImportButton';
 import ExcelExportButton from '@/components/ExcelExportButton';
 import PurchaseOrdersMultiSheetExportButton from '@/components/PurchaseOrdersMultiSheetExportButton';
 import SellOrdersMultiSheetExportButton from '@/components/SellOrdersMultiSheetExportButton';
-import { Product, Customer, Supplier, PurchaseOrder, SellOrder, Payment, ProductMovement } from '@/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; // Added Table components for Recycle Bin
+import { format } from 'date-fns'; // Added for date formatting in Recycle Bin
+import { Product, Customer, Supplier, PurchaseOrder, SellOrder, Payment, ProductMovement, CollectionKey } from '@/types';
 
 const DataImportExport: React.FC = () => {
   const {
@@ -20,10 +22,15 @@ const DataImportExport: React.FC = () => {
     incomingPayments, outgoingPayments, productMovements, settings, currencyRates,
     setProducts, setSuppliers, setCustomers, setWarehouses, setPurchaseOrders,
     setSellOrders, setIncomingPayments, setOutgoingPayments, setProductMovements,
-    setSettings, setCurrencyRates, // Added setCurrencyRates here
+    setSettings, setCurrencyRates,
     showConfirmationModal,
     getNextId,
     setNextIdForCollection,
+    recycleBin, // Added for Recycle Bin
+    restoreFromRecycleBin, // Added for Recycle Bin
+    deletePermanentlyFromRecycleBin, // Added for Recycle Bin
+    cleanRecycleBin, // Added for Recycle Bin
+    showAlertModal, // Added for Recycle Bin
   } = useData();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -496,6 +503,44 @@ const DataImportExport: React.FC = () => {
     }
   };
 
+  // Helper function for Recycle Bin summary
+  const getItemSummary = (item: any, collectionKey: CollectionKey): string => {
+    switch (collectionKey) {
+      case 'products':
+        const product = item as Product;
+        return `${product.name} (SKU: ${product.sku})`;
+      case 'suppliers':
+        const supplier = item as Supplier;
+        return `${supplier.name} (Contact: ${supplier.contact})`;
+      case 'customers':
+        const customer = item as Customer;
+        return `${customer.name} (Email: ${customer.email})`;
+      case 'warehouses':
+        const warehouse = item as Warehouse;
+        return `${warehouse.name} (${warehouse.location})`;
+      case 'purchaseOrders':
+        const po = item as PurchaseOrder;
+        const poSupplier = supplierMap[po.contactId]?.name || 'N/A';
+        return `PO #${po.id} (${poSupplier}) - Total: ${po.total.toFixed(2)} AZN`;
+      case 'sellOrders':
+        const so = item as SellOrder;
+        const soCustomer = customerMap[so.contactId]?.name || 'N/A';
+        return `SO #${so.id} (${soCustomer}) - Total: ${so.total.toFixed(2)} AZN`;
+      case 'incomingPayments':
+      case 'outgoingPayments':
+        const payment = item as Payment;
+        const orderRef = payment.orderId === 0 ? t('manualExpense') : `${t('orderId')} #${payment.orderId}`;
+        return `${t('paymentId')} #${payment.id} - ${payment.amount.toFixed(2)} ${payment.paymentCurrency} (${orderRef})`;
+      case 'productMovements':
+        const pm = item as ProductMovement;
+        const source = warehouseMap[pm.sourceWarehouseId]?.name || 'N/A';
+        const dest = warehouseMap[pm.destWarehouseId]?.name || 'N/A';
+        return `${t('movement')} #${pm.id} from ${source} to ${dest}`;
+      default:
+        return JSON.stringify(item);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-200 mb-6">{t('dataImportExport')}</h1>
@@ -800,6 +845,57 @@ const DataImportExport: React.FC = () => {
               { header: 'Items', accessor: 'itemsString' },
             ]}
           />
+        </div>
+      </div>
+
+      {/* Recycle Bin Section */}
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300">{t('recycleBin')}</h2>
+          <Button onClick={cleanRecycleBin} variant="destructive" disabled={recycleBin.length === 0}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            {t('cleanRecycleBin')}
+          </Button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-100 dark:bg-slate-700">
+                <TableHead className="p-3">{t('itemType')}</TableHead>
+                <TableHead className="p-3">{t('originalId')}</TableHead>
+                <TableHead className="p-3">{t('dataSummary')}</TableHead>
+                <TableHead className="p-3">{t('deletedAt')}</TableHead>
+                <TableHead className="p-3">{t('actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recycleBin.length > 0 ? (
+                recycleBin.map(item => (
+                  <TableRow key={item.id} className="border-b dark:border-slate-700 text-gray-800 dark:text-slate-300">
+                    <TableCell className="p-3 capitalize">{t(item.collectionKey)}</TableCell>
+                    <TableCell className="p-3">#{item.originalId}</TableCell>
+                    <TableCell className="p-3 text-sm">{getItemSummary(item.data, item.collectionKey)}</TableCell>
+                    <TableCell className="p-3">{format(new Date(item.deletedAt), 'yyyy-MM-dd HH:mm')}</TableCell>
+                    <TableCell className="p-3 flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => restoreFromRecycleBin(item.id)}>
+                        <RotateCcw className="w-4 h-4 mr-1" /> {t('restore')}
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => deletePermanentlyFromRecycleBin(item.id)}>
+                        <XCircle className="w-4 h-4 mr-1" /> {t('deletePermanently')}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="p-4 text-center text-gray-500 dark:text-slate-400">
+                    {t('noItemsInRecycleBin')}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>
