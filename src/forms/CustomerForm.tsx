@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { t } from '@/utils/i18n';
-import { Customer } from '@/types'; // Import types from types file
+import { Customer } from '@/types';
 
 interface CustomerFormProps {
   customerId?: number;
@@ -16,21 +16,21 @@ interface CustomerFormProps {
 }
 
 const CustomerForm: React.FC<CustomerFormProps> = ({ customerId, onSuccess }) => {
-  const { customers, warehouses, saveItem } = useData(); // Get warehouses from useData
+  const { customers, warehouses, saveItem } = useData();
   const isEdit = customerId !== undefined;
   const [customer, setCustomer] = useState<Partial<Customer>>({});
-  const [defaultWarehouseId, setDefaultWarehouseId] = useState<number | ''>(''); // State for default warehouse
+  const [defaultWarehouseId, setDefaultWarehouseId] = useState<number | undefined>(undefined); // Changed to undefined for no selection
 
   useEffect(() => {
     if (isEdit) {
       const existingCustomer = customers.find(c => c.id === customerId);
       if (existingCustomer) {
         setCustomer(existingCustomer);
-        setDefaultWarehouseId(existingCustomer.defaultWarehouseId || ''); // Set default warehouse if exists
+        setDefaultWarehouseId(existingCustomer.defaultWarehouseId); // Set default warehouse if exists
       }
     } else {
       setCustomer({});
-      setDefaultWarehouseId(''); // Reset for new customer
+      setDefaultWarehouseId(undefined); // Reset for new customer
     }
   }, [customerId, isEdit, customers]);
 
@@ -40,7 +40,7 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customerId, onSuccess }) =>
   };
 
   const handleDefaultWarehouseChange = (value: string) => {
-    setDefaultWarehouseId(value === '' ? '' : parseInt(value));
+    setDefaultWarehouseId(value === 'none-selected' ? undefined : parseInt(value));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,13 +52,13 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customerId, onSuccess }) =>
 
     const customerToSave: Customer = {
       ...customer,
-      id: customer.id || 0, // Will be overwritten by saveItem if new
+      id: customer.id || 0,
       name: customer.name,
       contact: customer.contact || '',
       email: customer.email || '',
       phone: customer.phone || '',
       address: customer.address || '',
-      defaultWarehouseId: defaultWarehouseId === '' ? undefined : defaultWarehouseId, // Save default warehouse
+      defaultWarehouseId: defaultWarehouseId, // Save default warehouse (undefined if none selected)
     };
 
     saveItem('customers', customerToSave);
@@ -130,12 +130,12 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customerId, onSuccess }) =>
           <Label htmlFor="defaultWarehouse" className="text-right">
             {t('defaultWarehouse')}
           </Label>
-          <Select onValueChange={handleDefaultWarehouseChange} value={String(defaultWarehouseId)}>
+          <Select onValueChange={handleDefaultWarehouseChange} value={defaultWarehouseId === undefined ? 'none-selected' : String(defaultWarehouseId)}>
             <SelectTrigger id="defaultWarehouse" className="col-span-3">
               <SelectValue placeholder={t('selectDefaultWarehouse')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">{t('none')}</SelectItem>
+              <SelectItem value="none-selected">{t('none')}</SelectItem>
               {warehouses.map(w => (
                 <SelectItem key={w.id} value={String(w.id)}>
                   {w.name}
