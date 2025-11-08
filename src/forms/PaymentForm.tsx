@@ -33,6 +33,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
   const isIncoming = type === 'incoming';
   const isEdit = paymentId !== undefined;
   const [payment, setPayment] = useState<Partial<Payment>>({});
+  const [selectedPaymentCurrency, setSelectedPaymentCurrency] = useState<'AZN' | 'USD' | 'EUR' | 'RUB'>('AZN');
+  const [manualExchangeRateInput, setManualExchangeRateInput] = useState<string>('');
+  const [manualExchangeRate, setManualExchangeRate] = useState<number | undefined>(undefined);
+
   // selectedOrderId will now be a composite string: '0' for manual, or 'orderId-category' (e.g., '123-products', '123-fees')
   const [selectedOrderIdentifier, setSelectedOrderIdentifier] = useState<string>('0');
 
@@ -53,13 +57,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
         if (!result[p.orderId]) {
           result[p.orderId] = { products: 0, fees: 0 };
         }
-        // For backward compatibility, if paymentCategory is undefined, assume it was for products
-        const category = p.paymentCategory || 'products';
-        result[p.orderId][category] += p.amount;
+        // Convert payment amount to AZN for aggregation
+        const amountInAZN = p.amount * (p.paymentCurrency === 'AZN' ? 1 : (p.paymentExchangeRate || currencyRates[p.paymentCurrency] || 1));
+        const category = p.paymentCategory || 'products'; // Default for old data
+        result[p.orderId][category] += amountInAZN;
       }
     });
     return result;
-  }, [allPayments]);
+  }, [allPayments, currencyRates]);
 
   // Calculate total products value and total fees value for a purchase order in AZN
   const calculatePurchaseOrderBreakdown = useCallback((order: PurchaseOrder) => {
@@ -85,10 +90,18 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
       const existingPayment = allPayments.find(p => p.id === paymentId);
       if (existingPayment) {
         setPayment(existingPayment);
+        setSelectedPaymentCurrency(existingPayment.paymentCurrency || 'AZN');
+        if (existingPayment.paymentCurrency !== 'AZN') {
+          setManualExchangeRate(existingPayment.paymentExchangeRate);
+          setManualExchangeRateInput(String(existingPayment.paymentExchangeRate || ''));
+        } else {
+          setManualExchangeRate(undefined);
+          setManualExchangeRateInput('');
+        }
+
         if (existingPayment.orderId === 0) {
           setSelectedOrderIdentifier('0');
         } else {
-          // For existing payments, default category to 'products' if not explicitly set
           const category = existingPayment.paymentCategory || 'products';
           setSelectedOrderIdentifier(`${existingPayment.orderId}-${category}`);
         }
@@ -99,12 +112,21 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
         amount: 0,
         method: '',
         orderId: 0,
-        paymentCategory: 'manual', // Default for new payments
+        paymentCategory: 'manual',
         manualDescription: '',
+        paymentCurrency: 'AZN', // Default for new payments
       });
+      setSelectedPaymentCurrency('AZN');
+      setManualExchangeRate(undefined);
+      setManualExchangeRateInput('');
       setSelectedOrderIdentifier('0');
     }
-  }, [paymentId, isEdit, allPayments]);
+  }, [paymentId, isEdit, allPayments, currencyRates]);
+
+  const currentPaymentExchangeRate = useMemo(() => {
+    if (selectedPaymentCurrency === 'AZN') return 1;
+    return manualExchangeRate !== undefined ? manualExchangeRate : currencyRates[selectedPaymentCurrency];
+  }, [selectedPaymentCurrency, manualExchangeRate, currencyRates]);
 
   const ordersWithBalance = useMemo(() => {
     const list: {
@@ -124,18 +146,19 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
       let adjustedFeesPaidAZN = currentOrderPayments.fees;
 
       if (isEdit && payment.orderId === order.id) {
-        const existingPaymentCategory = payment.paymentCategory || 'products'; // Default for old data
+        const existingPaymentCategory = payment.paymentCategory || 'products';
+        const existingPaymentAmountInAZN = (payment.amount || 0) * (payment.paymentCurrency === 'AZN' ? 1 : (payment.paymentExchangeRate || currencyRates[payment.paymentCurrency || 'AZN'] || 1));
         if (existingPaymentCategory === 'products') {
-          adjustedProductsPaidAZN -= (payment.amount || 0);
+          adjustedProductsPaidAZN -= existingPaymentAmountInAZN;
         } else if (existingPaymentCategory === 'fees') {
-          adjustedFeesPaidAZN -= (payment.amount || 0);
+          adjustedFeesPaidAZN -= existingPaymentAmountInAZN;
         }
       }
 
       if (isIncoming) { // Sell Orders (always in AZN in current model)
         const sellOrder = order as SellOrder;
-        const customerName = customerMap[sellOrder.contactId] || 'Unknown Customer'; // Get customer name
-        const totalOrderValueAZN = sellOrder.total; // Total includes VAT, always in AZN
+        const customerName = customerMap[sellOrder.contactId] || 'Unknown Customer';
+        const totalOrderValueAZN = sellOrder.total;
 
         const remainingTotalAZN = totalOrderValueAZN - adjustedProductsPaidAZN;
 
@@ -144,20 +167,19 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
             id: sellOrder.id,
             display: `${t('orderId')} #${sellOrder.id} (${customerName}) - ${t('remaining')}: ${remainingTotalAZN.toFixed(2)} AZN`,
             remainingAmount: remainingTotalAZN,
-            category: 'products', // Sell orders are always 'products' category for simplicity
+            category: 'products',
             orderType: 'sell',
             currency: 'AZN',
           });
         }
       } else { // Outgoing Payments for Purchase Orders
         const purchaseOrder = order as PurchaseOrder;
-        const supplierName = supplierMap[purchaseOrder.contactId] || 'Unknown Supplier'; // Get supplier name
+        const supplierName = supplierMap[purchaseOrder.contactId] || 'Unknown Supplier';
         const { productsSubtotalAZN, totalFeesAZN, orderNativeToAznRate } = calculatePurchaseOrderBreakdown(purchaseOrder);
 
         const remainingProductsBalanceAZN = productsSubtotalAZN - adjustedProductsPaidAZN;
         const remainingFeesBalanceAZN = totalFeesAZN - adjustedFeesPaidAZN;
 
-        // Convert remaining balances to order's native currency for display
         const remainingProductsBalanceNative = remainingProductsBalanceAZN / orderNativeToAznRate;
         const remainingFeesBalanceNative = remainingFeesBalanceAZN / orderNativeToAznRate;
 
@@ -184,11 +206,32 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
       }
     });
     return list;
-  }, [allOrders, paymentsByOrderAndCategory, isIncoming, isEdit, payment, calculatePurchaseOrderBreakdown, customerMap, supplierMap]);
+  }, [allOrders, paymentsByOrderAndCategory, isIncoming, isEdit, payment, calculatePurchaseOrderBreakdown, customerMap, supplierMap, currencyRates]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setPayment(prev => ({ ...prev, [id]: id === 'amount' ? parseFloat(value) || 0 : value }));
+  };
+
+  const handlePaymentCurrencyChange = (value: 'AZN' | 'USD' | 'EUR' | 'RUB') => {
+    setSelectedPaymentCurrency(value);
+    if (value === 'AZN') {
+      setManualExchangeRate(undefined);
+      setManualExchangeRateInput('');
+    } else {
+      const defaultRate = currencyRates[value];
+      setManualExchangeRate(defaultRate);
+      setManualExchangeRateInput(String(defaultRate));
+    }
+  };
+
+  const handleExchangeRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    if (inputValue === '' || /^-?\d*\.?\d*$/.test(inputValue)) {
+      setManualExchangeRateInput(inputValue);
+      const parsedValue = parseFloat(inputValue);
+      setManualExchangeRate(isNaN(parsedValue) ? undefined : parsedValue);
+    }
   };
 
   const handleOrderIdentifierChange = (value: string) => {
@@ -206,7 +249,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
         ...prev,
         orderId: parseInt(orderIdStr),
         paymentCategory: category as 'products' | 'fees',
-        manualDescription: undefined, // Clear description if linking to order
+        manualDescription: undefined,
       }));
     }
   };
@@ -214,46 +257,46 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (payment.amount === undefined || payment.amount <= 0) {
+      showAlertModal('Error', 'Please enter a valid positive amount.');
+      return;
+    }
+
+    if (selectedPaymentCurrency !== 'AZN' && (!manualExchangeRate || manualExchangeRate <= 0)) {
+      showAlertModal('Validation Error', 'Please enter a valid exchange rate for the selected payment currency.');
+      return;
+    }
+
+    const amountInAZN = payment.amount * currentPaymentExchangeRate;
+
     const paymentToSave: Payment = {
       ...payment,
-      id: payment.id || 0, // Will be overwritten by saveItem if new
+      id: payment.id || 0,
       date: payment.date || MOCK_CURRENT_DATE.toISOString().slice(0, 10),
-      amount: payment.amount || 0,
+      amount: payment.amount, // Native amount
+      paymentCurrency: selectedPaymentCurrency,
+      paymentExchangeRate: selectedPaymentCurrency === 'AZN' ? undefined : currentPaymentExchangeRate,
       method: payment.method || '',
     };
 
-    // Determine orderId and paymentCategory from selectedOrderIdentifier
     if (selectedOrderIdentifier === '0') {
       paymentToSave.orderId = 0;
       paymentToSave.paymentCategory = 'manual';
-    } else {
-      const [orderIdStr, category] = selectedOrderIdentifier.split('-');
-      paymentToSave.orderId = parseInt(orderIdStr);
-      paymentToSave.paymentCategory = category as 'products' | 'fees';
-    }
-
-    // Validation
-    if (paymentToSave.orderId === 0) {
       if (!paymentToSave.manualDescription?.trim()) {
         showAlertModal('Error', 'Manual Expense requires a description.');
         return;
       }
     } else {
-      if (isNaN(paymentToSave.orderId) || paymentToSave.orderId === 0) {
-        showAlertModal('Error', 'Please select a linked order or choose Manual Expense.');
-        return;
-      }
-      // Ensure manualDescription is not saved if linked to an order
+      const [orderIdStr, category] = selectedOrderIdentifier.split('-');
+      paymentToSave.orderId = parseInt(orderIdStr);
+      paymentToSave.paymentCategory = category as 'products' | 'fees';
       delete paymentToSave.manualDescription;
 
-      // Validate amount against remaining balance for the specific category
       const selectedOrderOption = ordersWithBalance.find(o =>
         `${o.id}-${o.category}` === selectedOrderIdentifier && o.orderType === (isIncoming ? 'sell' : 'purchase')
       );
 
       if (selectedOrderOption) {
-        // The amount entered in the form is always in AZN.
-        // We need to convert the remainingAmount (which is in native currency) to AZN for comparison.
         let remainingAmountInAZN = selectedOrderOption.remainingAmount;
         if (selectedOrderOption.currency !== 'AZN') {
           const order = (isIncoming ? sellOrderMap : purchaseOrderMap)[selectedOrderOption.id];
@@ -263,16 +306,11 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
           }
         }
 
-        if (paymentToSave.amount > remainingAmountInAZN + 0.001) { // Add tolerance
-          showAlertModal('Error', `Payment amount exceeds the remaining balance for this category. Remaining: ${remainingAmountInAZN.toFixed(2)} AZN.`);
+        if (amountInAZN > remainingAmountInAZN + 0.001) {
+          showAlertModal('Error', `Payment amount (${amountInAZN.toFixed(2)} AZN) exceeds the remaining balance for this category. Remaining: ${remainingAmountInAZN.toFixed(2)} AZN.`);
           return;
         }
       }
-    }
-
-    if (paymentToSave.amount <= 0) {
-      showAlertModal('Error', 'Please enter a valid positive amount.');
-      return;
     }
 
     saveItem(isIncoming ? 'incomingPayments' : 'outgoingPayments', paymentToSave);
@@ -348,11 +386,40 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
             step="0.01"
             value={payment.amount || ''}
             onChange={handleChange}
-            className="col-span-3"
+            className="col-span-2"
             required
             min="0.01"
           />
+          <Select onValueChange={handlePaymentCurrencyChange} value={selectedPaymentCurrency}>
+            <SelectTrigger className="col-span-1">
+              <SelectValue placeholder="AZN" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="AZN">AZN</SelectItem>
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="EUR">EUR</SelectItem>
+              <SelectItem value="RUB">RUB</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        {selectedPaymentCurrency !== 'AZN' && (
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="exchangeRate" className="text-right">{t('exchangeRateToAZN')}</Label>
+            <div className="col-span-3">
+              <Input
+                id="exchangeRate"
+                type="text"
+                value={manualExchangeRateInput}
+                onChange={handleExchangeRateChange}
+                placeholder={t('exchangeRatePlaceholder')}
+                className="mb-1"
+                required
+              />
+              <p className="text-xs text-gray-500 dark:text-slate-400">{t('exchangeRateHelpText')}</p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="method" className="text-right">

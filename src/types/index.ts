@@ -81,7 +81,9 @@ export interface Payment {
   paymentCategory?: 'products' | 'fees' | 'manual'; // New field to specify what the payment is for
   manualDescription?: string; // For manual expenses
   date: string;
-  amount: number;
+  amount: number; // Amount in paymentCurrency
+  paymentCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB'; // New: Currency of the payment
+  paymentExchangeRate?: number; // New: Exchange rate to AZN if not AZN
   method: string;
 }
 

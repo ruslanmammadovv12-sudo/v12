@@ -18,7 +18,7 @@ type SortConfig = {
 };
 
 const IncomingPayments: React.FC = () => {
-  const { incomingPayments, sellOrders, customers, deleteItem } = useData();
+  const { incomingPayments, sellOrders, customers, deleteItem, currencyRates } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPaymentId, setEditingPaymentId] = useState<number | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'ascending' });
@@ -30,10 +30,10 @@ const IncomingPayments: React.FC = () => {
 
   const paymentsByOrder = useMemo(() => {
     return incomingPayments.reduce((acc, p) => {
-      acc[p.orderId] = (acc[p.orderId] || 0) + p.amount;
+      acc[p.orderId] = (acc[p.orderId] || 0) + (p.amount * (p.paymentCurrency === 'AZN' ? 1 : (p.paymentExchangeRate || currencyRates[p.paymentCurrency] || 1)));
       return acc;
     }, {} as { [key: number]: number });
-  }, [incomingPayments]);
+  }, [incomingPayments, currencyRates]);
 
   const filteredAndSortedPayments = useMemo(() => {
     let filteredPayments = incomingPayments;
@@ -175,19 +175,18 @@ const IncomingPayments: React.FC = () => {
                 let remainingAmountText = '';
 
                 if (order && p.orderId !== 0) {
-                  const totalPaidForThisOrder = paymentsByOrder[p.orderId] || 0;
+                  const totalPaidForThisOrderInAZN = paymentsByOrder[p.orderId] || 0;
                   const orderTotal = order.total;
-                  // Corrected calculation: totalPaidForThisOrder already includes p.amount
-                  const currentRemainingBalance = orderTotal - totalPaidForThisOrder;
+                  const currentRemainingBalanceInAZN = orderTotal - totalPaidForThisOrderInAZN;
 
-                  const isFullyPaid = currentRemainingBalance <= 0.001;
+                  const isFullyPaid = currentRemainingBalanceInAZN <= 0.001;
 
                   if (isFullyPaid) {
                     rowClass += ' bg-green-100 dark:bg-green-900/50';
                     remainingAmountText = `<span class="text-xs text-green-700 dark:text-green-400 ml-1">(${t('fullyPaid')})</span>`;
                   } else {
                     rowClass += ' bg-red-100 dark:bg-red-900/50';
-                    remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalance.toFixed(2)} AZN)</span>`;
+                    remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalanceInAZN.toFixed(2)} AZN)</span>`;
                   }
                 }
 
@@ -199,7 +198,7 @@ const IncomingPayments: React.FC = () => {
                     <TableCell className="p-3">{p.linkedOrderDisplay}</TableCell>
                     <TableCell className="p-3">{p.date}</TableCell>
                     <TableCell className="p-3 font-bold">
-                      {p.amount.toFixed(2)} AZN <span dangerouslySetInnerHTML={{ __html: remainingAmountText }} />
+                      {p.amount.toFixed(2)} {p.paymentCurrency} <span dangerouslySetInnerHTML={{ __html: remainingAmountText }} />
                     </TableCell>
                     <TableCell className="p-3">{p.method}</TableCell>
                     <TableCell className="p-3">

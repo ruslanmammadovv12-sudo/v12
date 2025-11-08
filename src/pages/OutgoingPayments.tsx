@@ -36,12 +36,14 @@ const OutgoingPayments: React.FC = () => {
         if (!result[p.orderId]) {
           result[p.orderId] = { products: 0, fees: 0 };
         }
+        // Convert payment amount to AZN for aggregation
+        const amountInAZN = p.amount * (p.paymentCurrency === 'AZN' ? 1 : (p.paymentExchangeRate || currencyRates[p.paymentCurrency] || 1));
         const category = p.paymentCategory || 'products'; // Default for old data
-        result[p.orderId][category] += p.amount;
+        result[p.orderId][category] += amountInAZN;
       }
     });
     return result;
-  }, [outgoingPayments]);
+  }, [outgoingPayments, currencyRates]);
 
   // Calculate total products value and total fees value for a purchase order in AZN
   const calculatePurchaseOrderBreakdown = useCallback((order: PurchaseOrder) => {
@@ -89,28 +91,27 @@ const OutgoingPayments: React.FC = () => {
           const { productsSubtotalAZN, totalFeesAZN } = calculatePurchaseOrderBreakdown(order);
           const currentOrderPayments = paymentsByOrderAndCategory[order.id] || { products: 0, fees: 0 };
 
-          let totalPaidForCategory = 0;
-          let totalCategoryValue = 0;
+          let totalPaidForCategoryInAZN = 0;
+          let totalCategoryValueInAZN = 0;
 
           if (p.paymentCategory === 'products') {
-            totalPaidForCategory = currentOrderPayments.products;
-            totalCategoryValue = productsSubtotalAZN;
+            totalPaidForCategoryInAZN = currentOrderPayments.products;
+            totalCategoryValueInAZN = productsSubtotalAZN;
           } else if (p.paymentCategory === 'fees') {
-            totalPaidForCategory = currentOrderPayments.fees;
-            totalCategoryValue = totalFeesAZN;
-          } else { // Fallback for old data or if category is missing, assume it was for products
-            totalPaidForCategory = currentOrderPayments.products;
-            totalCategoryValue = productsSubtotalAZN;
+            totalPaidForCategoryInAZN = currentOrderPayments.fees;
+            totalCategoryValueInAZN = totalFeesAZN;
+          } else {
+            totalPaidForCategoryInAZN = currentOrderPayments.products;
+            totalCategoryValueInAZN = productsSubtotalAZN;
           }
 
-          // Corrected calculation: totalPaidForCategory already includes p.amount
-          const currentRemainingBalance = totalCategoryValue - totalPaidForCategory;
-          const isFullyPaid = currentRemainingBalance <= 0.001;
+          const currentRemainingBalanceInAZN = totalCategoryValueInAZN - totalPaidForCategoryInAZN;
+          const isFullyPaid = currentRemainingBalanceInAZN <= 0.001;
 
           if (isFullyPaid) {
             remainingAmountText = `<span class="text-xs text-green-700 dark:text-green-400 ml-1">(${t('fullyPaid')})</span>`;
           } else {
-            remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalance.toFixed(2)} AZN)</span>`;
+            remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalanceInAZN.toFixed(2)} AZN)</span>`;
           }
         }
       }
@@ -231,12 +232,38 @@ const OutgoingPayments: React.FC = () => {
             {filteredAndSortedPayments.length > 0 ? (
               filteredAndSortedPayments.map(p => {
                 let rowClass = 'border-b dark:border-slate-700 text-gray-800 dark:text-slate-300';
-                // Determine row class based on payment status (fully paid or partially paid)
+                let remainingAmountText = '';
+
                 if (p.orderId !== 0) {
-                  if (p.remainingAmountText?.includes(t('fullyPaid'))) { // Use translation key
-                    rowClass += ' bg-green-100 dark:bg-green-900/50';
-                  } else if (p.remainingAmountText?.includes(t('remaining'))) { // Use translation key
-                    rowClass += ' bg-red-100 dark:bg-red-900/50';
+                  const order = purchaseOrderMap[p.orderId];
+                  if (order) {
+                    const { productsSubtotalAZN, totalFeesAZN } = calculatePurchaseOrderBreakdown(order);
+                    const currentOrderPayments = paymentsByOrderAndCategory[order.id] || { products: 0, fees: 0 };
+
+                    let totalPaidForCategoryInAZN = 0;
+                    let totalCategoryValueInAZN = 0;
+
+                    if (p.paymentCategory === 'products') {
+                      totalPaidForCategoryInAZN = currentOrderPayments.products;
+                      totalCategoryValueInAZN = productsSubtotalAZN;
+                    } else if (p.paymentCategory === 'fees') {
+                      totalPaidForCategoryInAZN = currentOrderPayments.fees;
+                      totalCategoryValueInAZN = totalFeesAZN;
+                    } else {
+                      totalPaidForCategoryInAZN = currentOrderPayments.products;
+                      totalCategoryValueInAZN = productsSubtotalAZN;
+                    }
+
+                    const currentRemainingBalanceInAZN = totalCategoryValueInAZN - totalPaidForCategoryInAZN;
+                    const isFullyPaid = currentRemainingBalanceInAZN <= 0.001;
+
+                    if (isFullyPaid) {
+                      rowClass += ' bg-green-100 dark:bg-green-900/50';
+                      remainingAmountText = `<span class="text-xs text-green-700 dark:text-green-400 ml-1">(${t('fullyPaid')})</span>`;
+                    } else {
+                      rowClass += ' bg-red-100 dark:bg-red-900/50';
+                      remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalanceInAZN.toFixed(2)} AZN)</span>`;
+                    }
                   }
                 }
 
@@ -248,7 +275,7 @@ const OutgoingPayments: React.FC = () => {
                     <TableCell className="p-3">{p.linkedOrderDisplay}</TableCell>
                     <TableCell className="p-3">{p.date}</TableCell>
                     <TableCell className="p-3 font-bold">
-                      {p.amount.toFixed(2)} AZN <span dangerouslySetInnerHTML={{ __html: p.remainingAmountText || '' }} />
+                      {p.amount.toFixed(2)} {p.paymentCurrency} <span dangerouslySetInnerHTML={{ __html: remainingAmountText }} />
                     </TableCell>
                     <TableCell className="p-3">{p.method}</TableCell>
                     <TableCell className="p-3">
