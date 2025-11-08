@@ -27,13 +27,14 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
     currencyRates,
     customers, // Added customers
     suppliers, // Added suppliers
-  } = useData();
+  }
+    = useData();
 
   const isIncoming = type === 'incoming';
   const isEdit = paymentId !== undefined;
   const [payment, setPayment] = useState<Partial<Payment>>({});
   // selectedOrderId will now be a composite string: '0' for manual, or 'orderId-category' (e.g., '123-products', '123-fees')
-  const [selectedOrderIdentifier, setSelectedOrderIdentifier] = useState<string>('0'); 
+  const [selectedOrderIdentifier, setSelectedOrderIdentifier] = useState<string>('0');
 
   const allOrders = isIncoming ? sellOrders : purchaseOrders;
   const allPayments = isIncoming ? incomingPayments : outgoingPayments;
@@ -53,7 +54,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
           result[p.orderId] = { products: 0, fees: 0 };
         }
         // For backward compatibility, if paymentCategory is undefined, assume it was for products
-        const category = p.paymentCategory || 'products'; 
+        const category = p.paymentCategory || 'products';
         result[p.orderId][category] += p.amount;
       }
     });
@@ -76,7 +77,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
     const additionalFeesAZN = convertFeeToAzn(order.additionalFees, order.additionalFeesCurrency);
     const totalFeesAZN = transportationFeesAZN + customFeesAZN + additionalFeesAZN;
 
-    return { productsSubtotalAZN, totalFeesAZN };
+    return { productsSubtotalAZN, totalFeesAZN, orderNativeToAznRate };
   }, [currencyRates]);
 
   useEffect(() => {
@@ -109,66 +110,75 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
     const list: {
       id: number;
       display: string;
-      remainingAmount: number;
+      remainingAmount: number; // This will be in the order's native currency for display
       category: 'products' | 'fees';
       orderType: 'sell' | 'purchase';
+      currency: 'AZN' | 'USD' | 'EUR' | 'RUB'; // Native currency of the order
     }[] = [];
 
     allOrders.forEach(order => {
       const currentOrderPayments = paymentsByOrderAndCategory[order.id] || { products: 0, fees: 0 };
 
       // Adjust for the current payment being edited
-      let adjustedProductsPaid = currentOrderPayments.products;
-      let adjustedFeesPaid = currentOrderPayments.fees;
+      let adjustedProductsPaidAZN = currentOrderPayments.products;
+      let adjustedFeesPaidAZN = currentOrderPayments.fees;
 
       if (isEdit && payment.orderId === order.id) {
         const existingPaymentCategory = payment.paymentCategory || 'products'; // Default for old data
         if (existingPaymentCategory === 'products') {
-          adjustedProductsPaid -= (payment.amount || 0);
+          adjustedProductsPaidAZN -= (payment.amount || 0);
         } else if (existingPaymentCategory === 'fees') {
-          adjustedFeesPaid -= (payment.amount || 0);
+          adjustedFeesPaidAZN -= (payment.amount || 0);
         }
       }
 
-      if (isIncoming) { // Sell Orders
+      if (isIncoming) { // Sell Orders (always in AZN in current model)
         const sellOrder = order as SellOrder;
         const customerName = customerMap[sellOrder.contactId] || 'Unknown Customer'; // Get customer name
-        const totalOrderValue = sellOrder.total; // Total includes VAT
-        const remainingTotal = totalOrderValue - adjustedProductsPaid; // For sell orders, we treat it as one total
+        const totalOrderValueAZN = sellOrder.total; // Total includes VAT, always in AZN
 
-        if (remainingTotal > 0.001) {
+        const remainingTotalAZN = totalOrderValueAZN - adjustedProductsPaidAZN;
+
+        if (remainingTotalAZN > 0.001) {
           list.push({
             id: sellOrder.id,
-            display: `${t('orderId')} #${sellOrder.id} (${customerName}) - ${t('remaining')}: ${remainingTotal.toFixed(2)} AZN`,
-            remainingAmount: remainingTotal,
+            display: `${t('orderId')} #${sellOrder.id} (${customerName}) - ${t('remaining')}: ${remainingTotalAZN.toFixed(2)} AZN`,
+            remainingAmount: remainingTotalAZN,
             category: 'products', // Sell orders are always 'products' category for simplicity
             orderType: 'sell',
+            currency: 'AZN',
           });
         }
       } else { // Outgoing Payments for Purchase Orders
         const purchaseOrder = order as PurchaseOrder;
         const supplierName = supplierMap[purchaseOrder.contactId] || 'Unknown Supplier'; // Get supplier name
-        const { productsSubtotalAZN, totalFeesAZN } = calculatePurchaseOrderBreakdown(purchaseOrder);
+        const { productsSubtotalAZN, totalFeesAZN, orderNativeToAznRate } = calculatePurchaseOrderBreakdown(purchaseOrder);
 
-        const remainingProductsBalance = productsSubtotalAZN - adjustedProductsPaid;
-        const remainingFeesBalance = totalFeesAZN - adjustedFeesPaid;
+        const remainingProductsBalanceAZN = productsSubtotalAZN - adjustedProductsPaidAZN;
+        const remainingFeesBalanceAZN = totalFeesAZN - adjustedFeesPaidAZN;
 
-        if (remainingProductsBalance > 0.001) {
+        // Convert remaining balances to order's native currency for display
+        const remainingProductsBalanceNative = remainingProductsBalanceAZN / orderNativeToAznRate;
+        const remainingFeesBalanceNative = remainingFeesBalanceAZN / orderNativeToAznRate;
+
+        if (remainingProductsBalanceNative > 0.001) {
           list.push({
             id: purchaseOrder.id,
-            display: `${t('orderId')} #${purchaseOrder.id} (${supplierName}) - ${t('productsTotal')} - ${t('remaining')}: ${remainingProductsBalance.toFixed(2)} AZN`,
-            remainingAmount: remainingProductsBalance,
+            display: `${t('orderId')} #${purchaseOrder.id} (${supplierName}) - ${t('productsTotal')} - ${t('remaining')}: ${remainingProductsBalanceNative.toFixed(2)} ${purchaseOrder.currency}`,
+            remainingAmount: remainingProductsBalanceNative,
             category: 'products',
             orderType: 'purchase',
+            currency: purchaseOrder.currency,
           });
         }
-        if (remainingFeesBalance > 0.001) {
+        if (remainingFeesBalanceNative > 0.001) {
           list.push({
             id: purchaseOrder.id,
-            display: `${t('orderId')} #${purchaseOrder.id} (${supplierName}) - ${t('feesTotal')} - ${t('remaining')}: ${remainingFeesBalance.toFixed(2)} AZN`,
-            remainingAmount: remainingFeesBalance,
+            display: `${t('orderId')} #${purchaseOrder.id} (${supplierName}) - ${t('feesTotal')} - ${t('remaining')}: ${remainingFeesBalanceNative.toFixed(2)} ${purchaseOrder.currency}`,
+            remainingAmount: remainingFeesBalanceNative,
             category: 'fees',
             orderType: 'purchase',
+            currency: purchaseOrder.currency,
           });
         }
       }
@@ -237,13 +247,26 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
       delete paymentToSave.manualDescription;
 
       // Validate amount against remaining balance for the specific category
-      const selectedOrderOption = ordersWithBalance.find(o => 
+      const selectedOrderOption = ordersWithBalance.find(o =>
         `${o.id}-${o.category}` === selectedOrderIdentifier && o.orderType === (isIncoming ? 'sell' : 'purchase')
       );
 
-      if (selectedOrderOption && paymentToSave.amount > selectedOrderOption.remainingAmount + 0.001) { // Add tolerance
-        showAlertModal('Error', `Payment amount exceeds the remaining balance for this category. Remaining: ${selectedOrderOption.remainingAmount.toFixed(2)} AZN.`);
-        return;
+      if (selectedOrderOption) {
+        // The amount entered in the form is always in AZN.
+        // We need to convert the remainingAmount (which is in native currency) to AZN for comparison.
+        let remainingAmountInAZN = selectedOrderOption.remainingAmount;
+        if (selectedOrderOption.currency !== 'AZN') {
+          const order = (isIncoming ? sellOrderMap : purchaseOrderMap)[selectedOrderOption.id];
+          if (order) {
+            const orderNativeToAznRate = order.currency === 'AZN' ? 1 : (order.exchangeRate || currencyRates[order.currency] || 1);
+            remainingAmountInAZN = selectedOrderOption.remainingAmount * orderNativeToAznRate;
+          }
+        }
+
+        if (paymentToSave.amount > remainingAmountInAZN + 0.001) { // Add tolerance
+          showAlertModal('Error', `Payment amount exceeds the remaining balance for this category. Remaining: ${remainingAmountInAZN.toFixed(2)} AZN.`);
+          return;
+        }
       }
     }
 
