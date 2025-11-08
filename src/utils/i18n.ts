@@ -152,6 +152,26 @@ const i18n = {
     defaultWarehouse: 'Default Warehouse',
     selectDefaultWarehouse: 'Select Default Warehouse',
     none: 'None',
+    // Recycle Bin translations
+    recycleBin: 'Recycle Bin',
+    itemMovedToRecycleBin: 'Item moved to Recycle Bin.',
+    itemNotFound: 'Item not found.',
+    itemNotFoundInRecycleBin: 'Item not found in Recycle Bin.',
+    unknownCollectionType: 'Unknown collection type.',
+    itemAlreadyExists: 'Item with this ID already exists in the active data. Restore aborted.',
+    itemRestored: 'Item restored successfully.',
+    deletePermanently: 'Delete Permanently',
+    deletePermanentlyWarning: 'Are you sure you want to permanently delete this item? This action is irreversible.',
+    itemDeletedPermanently: 'Item deleted permanently.',
+    cleanRecycleBin: 'Clean Recycle Bin',
+    cleanRecycleBinWarning: 'Are you sure you want to permanently delete ALL items from the Recycle Bin? This action is irreversible.',
+    recycleBinCleaned: 'Recycle Bin cleaned successfully.',
+    itemType: 'Item Type',
+    originalId: 'Original ID',
+    dataSummary: 'Data Summary',
+    deletedAt: 'Deleted At',
+    restore: 'Restore',
+    movement: 'Movement',
   }
 };
 

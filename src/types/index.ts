@@ -111,3 +111,14 @@ export interface Settings {
   defaultMarkup: number;
   currencyRates: CurrencyRates;
 }
+
+// --- Recycle Bin Types ---
+export type CollectionKey = keyof Omit<typeof initialData, 'settings' | 'currencyRates'>; // Exclude settings/currencyRates from direct deletion
+
+export interface RecycleBinItem {
+  id: string; // Unique ID for the recycle bin entry
+  originalId: number; // The ID of the deleted item
+  collectionKey: CollectionKey; // The original collection key (e.g., 'products')
+  data: any; // The actual deleted item object
+  deletedAt: string; // ISO string timestamp of deletion
+}

@@ -5,7 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { t, getKeyAsPageId } from '@/utils/i18n';
 import { useData } from '@/context/DataContext';
 import {
-  Home, Package, ShoppingCart, DollarSign, Users, Truck, Warehouse, TrendingUp, BarChart, Settings, UploadCloud, ArrowLeftRight,
+  Home, Package, ShoppingCart, DollarSign, Users, Truck, Warehouse, TrendingUp, BarChart, Settings, UploadCloud, ArrowLeftRight, Trash2, // Added Trash2 icon
 } from 'lucide-react';
 import { Settings as SettingsType } from '@/types'; // Import Settings type with an alias
 
@@ -24,6 +24,7 @@ const navItems = [
   { id: 'profitability', icon: <TrendingUp className="w-6 h-6 mr-3" /> },
   { id: 'dataImportExport', icon: <UploadCloud className="w-6 h-6 mr-3" /> },
   { id: 'settings', icon: <Settings className="w-6 h-6 mr-3" /> },
+  { id: 'recycleBin', icon: <Trash2 className="w-6 h-6 mr-3" /> }, // New Recycle Bin item
 ];
 
 const Sidebar: React.FC = () => {

@@ -5,8 +5,8 @@ import { toast as sonnerToast } from 'sonner';
 import { t } from '@/utils/i18n';
 import {
   Product, Supplier, Customer, Warehouse, PurchaseOrder, SellOrder, Payment, ProductMovement,
-  initialData, // initialData is still from DataContext, as it uses the types
-} from '@/types'; // Import all types from types file
+  initialData, CollectionKey, RecycleBinItem // Import all types from types file
+} from '@/types';
 
 interface UseCrudOperationsProps {
   products: Product[];
@@ -32,6 +32,7 @@ interface UseCrudOperationsProps {
   showAlertModal: (title: string, message: string) => void;
   showConfirmationModal: (title: string, message: string, onConfirm: () => void) => void;
   updateStockFromOrder: (newOrder: PurchaseOrder | SellOrder | null, oldOrder: PurchaseOrder | SellOrder | null) => void;
+  addToRecycleBin: (item: any, collectionKey: CollectionKey) => void; // New prop
 }
 
 export function useCrudOperations({
@@ -47,17 +48,18 @@ export function useCrudOperations({
   nextIds, setNextIds,
   showAlertModal, showConfirmationModal,
   updateStockFromOrder,
+  addToRecycleBin, // Destructure new prop
 }: UseCrudOperationsProps) {
 
-  const getNextId = useCallback((key: keyof typeof initialData) => {
+  const getNextId = useCallback((key: CollectionKey) => {
     return nextIds[key] || 1;
   }, [nextIds]);
 
-  const setNextIdForCollection = useCallback((key: keyof typeof initialData, newNextId: number) => {
+  const setNextIdForCollection = useCallback((key: CollectionKey, newNextId: number) => {
     setNextIds(prev => ({ ...prev, [key]: newNextId }));
   }, [setNextIds]);
 
-  const saveItem = useCallback((key: keyof typeof initialData, item: any) => {
+  const saveItem = useCallback((key: CollectionKey, item: any) => {
     let currentItems: any[] = [];
     let setter: React.Dispatch<React.SetStateAction<any[]>>;
 
@@ -103,7 +105,7 @@ export function useCrudOperations({
     sonnerToast.success(t('success'), { description: `${t('detailsUpdated')}` });
   }, [products, setProducts, suppliers, setSuppliers, customers, setCustomers, warehouses, setWarehouses, purchaseOrders, setPurchaseOrders, sellOrders, setSellOrders, incomingPayments, setIncomingPayments, outgoingPayments, setOutgoingPayments, productMovements, setProductMovements, getNextId, setNextIdForCollection, showAlertModal]);
 
-  const deleteItem = useCallback((key: keyof typeof initialData, id: number) => {
+  const deleteItem = useCallback((key: CollectionKey, id: number) => {
     const onConfirmDelete = () => {
       let currentItems: any[] = [];
       let setter: React.Dispatch<React.SetStateAction<any[]>>;
@@ -119,6 +121,12 @@ export function useCrudOperations({
         case 'outgoingPayments': currentItems = outgoingPayments; setter = setOutgoingPayments; break;
         case 'productMovements': currentItems = productMovements; setter = setProductMovements; break;
         default: return;
+      }
+
+      const itemToDelete = currentItems.find(i => i.id === id);
+      if (!itemToDelete) {
+        showAlertModal(t('error'), t('itemNotFound'));
+        return;
       }
 
       // --- Deletion validation checks ---
@@ -186,11 +194,12 @@ export function useCrudOperations({
         }
       }
 
-      setter(currentItems.filter(i => i.id !== id));
-      sonnerToast.success(t('success'), { description: `Item deleted successfully.` });
+      // Move to recycle bin instead of permanent deletion
+      addToRecycleBin(itemToDelete, key);
+      setter(currentItems.filter(i => i.id !== id)); // Remove from active data
     };
     showConfirmationModal(t('confirmation'), t('areYouSure'), onConfirmDelete);
-  }, [products, suppliers, customers, warehouses, purchaseOrders, sellOrders, incomingPayments, outgoingPayments, productMovements, showAlertModal, showConfirmationModal, setProducts, setSuppliers, setCustomers, setWarehouses, setPurchaseOrders, setSellOrders, setIncomingPayments, setOutgoingPayments, setProductMovements, updateStockFromOrder]);
+  }, [products, suppliers, customers, warehouses, purchaseOrders, sellOrders, incomingPayments, outgoingPayments, productMovements, showAlertModal, showConfirmationModal, setProducts, setSuppliers, setCustomers, setWarehouses, setPurchaseOrders, setSellOrders, setIncomingPayments, setOutgoingPayments, setProductMovements, updateStockFromOrder, addToRecycleBin]);
 
   return {
     getNextId,
