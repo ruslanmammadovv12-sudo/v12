@@ -20,7 +20,7 @@ const DataImportExport: React.FC = () => {
     incomingPayments, outgoingPayments, productMovements, settings, currencyRates,
     setProducts, setSuppliers, setCustomers, setWarehouses, setPurchaseOrders,
     setSellOrders, setIncomingPayments, setOutgoingPayments, setProductMovements,
-    setSettings,
+    setSettings, setCurrencyRates, // Added setCurrencyRates here
     showConfirmationModal,
     getNextId,
     setNextIdForCollection,
