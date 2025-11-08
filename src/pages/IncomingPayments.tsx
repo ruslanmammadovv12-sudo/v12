@@ -177,16 +177,17 @@ const IncomingPayments: React.FC = () => {
                 if (order && p.orderId !== 0) {
                   const totalPaidForThisOrder = paymentsByOrder[p.orderId] || 0;
                   const orderTotal = order.total;
-                  const remainingIfReversed = orderTotal - (totalPaidForThisOrder - p.amount);
+                  // Corrected calculation: totalPaidForThisOrder already includes p.amount
+                  const currentRemainingBalance = orderTotal - totalPaidForThisOrder;
 
-                  const isFullyPaid = remainingIfReversed <= 0.001;
+                  const isFullyPaid = currentRemainingBalance <= 0.001;
 
                   if (isFullyPaid) {
                     rowClass += ' bg-green-100 dark:bg-green-900/50';
                     remainingAmountText = `<span class="text-xs text-green-700 dark:text-green-400 ml-1">(${t('fullyPaid')})</span>`;
                   } else {
-                    rowClass += ' bg-red-100 dark:bg-red-900/50'; // Changed to red
-                    remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${remainingIfReversed.toFixed(2)} AZN)</span>`;
+                    rowClass += ' bg-red-100 dark:bg-red-900/50';
+                    remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalance.toFixed(2)} AZN)</span>`;
                   }
                 }
 

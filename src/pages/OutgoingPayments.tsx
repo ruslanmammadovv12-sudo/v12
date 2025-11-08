@@ -89,7 +89,6 @@ const OutgoingPayments: React.FC = () => {
           const { productsSubtotalAZN, totalFeesAZN } = calculatePurchaseOrderBreakdown(order);
           const currentOrderPayments = paymentsByOrderAndCategory[order.id] || { products: 0, fees: 0 };
 
-          // Calculate remaining *if this payment were reversed*
           let totalPaidForCategory = 0;
           let totalCategoryValue = 0;
 
@@ -104,13 +103,14 @@ const OutgoingPayments: React.FC = () => {
             totalCategoryValue = productsSubtotalAZN;
           }
 
-          const remainingIfReversed = totalCategoryValue - (totalPaidForCategory - p.amount);
-          const isFullyPaid = remainingIfReversed <= 0.001;
+          // Corrected calculation: totalPaidForCategory already includes p.amount
+          const currentRemainingBalance = totalCategoryValue - totalPaidForCategory;
+          const isFullyPaid = currentRemainingBalance <= 0.001;
 
           if (isFullyPaid) {
             remainingAmountText = `<span class="text-xs text-green-700 dark:text-green-400 ml-1">(${t('fullyPaid')})</span>`;
           } else {
-            remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${remainingIfReversed.toFixed(2)} AZN)</span>`;
+            remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalance.toFixed(2)} AZN)</span>`;
           }
         }
       }
@@ -236,7 +236,7 @@ const OutgoingPayments: React.FC = () => {
                   if (p.remainingAmountText?.includes(t('fullyPaid'))) { // Use translation key
                     rowClass += ' bg-green-100 dark:bg-green-900/50';
                   } else if (p.remainingAmountText?.includes(t('remaining'))) { // Use translation key
-                    rowClass += ' bg-red-100 dark:bg-red-900/50'; // Changed to red
+                    rowClass += ' bg-red-100 dark:bg-red-900/50';
                   }
                 }
 
