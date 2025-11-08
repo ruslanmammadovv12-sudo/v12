@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
-import *s XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 import { t } from '@/utils/i18n';
 import { PurchaseOrder, Product, Supplier, Warehouse, CurrencyRates } from '@/types';
 
