@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,31 @@ const PurchaseOrders: React.FC = () => {
     return products.reduce((acc, p) => ({ ...acc, [p.id]: p }), {} as { [key: number]: Product });
   }, [products]);
 
+  // Helper function to format fees for display
+  const formatFeesDisplay = useCallback((order: PurchaseOrder) => {
+    const fees: { amount: number; currency: 'AZN' | 'USD' | 'EUR' | 'RUB' }[] = [];
+    if (order.transportationFees > 0) fees.push({ amount: order.transportationFees, currency: order.transportationFeesCurrency });
+    if (order.customFees > 0) fees.push({ amount: order.customFees, currency: order.customFeesCurrency });
+    if (order.additionalFees > 0) fees.push({ amount: order.additionalFees, currency: order.additionalFeesCurrency });
+
+    if (fees.length === 0) {
+      return `0.00 AZN`;
+    }
+
+    // Group fees by currency
+    const groupedFees: { [currency: string]: number } = {};
+    fees.forEach(fee => {
+      groupedFees[fee.currency] = (groupedFees[fee.currency] || 0) + fee.amount;
+    });
+
+    const parts: string[] = [];
+    for (const currency in groupedFees) {
+      parts.push(`${groupedFees[currency].toFixed(2)} ${currency}`);
+    }
+
+    return parts.join(', ');
+  }, []);
+
   const filteredAndSortedOrders = useMemo(() => {
     let filteredOrders = purchaseOrders;
 
@@ -85,12 +110,15 @@ const PurchaseOrders: React.FC = () => {
       totalAdditionalCostsAZN += convertFeeToAZN(order.customFees, order.customFeesCurrency);
       totalAdditionalCostsAZN += convertFeeToAZN(order.additionalFees, order.additionalFeesCurrency);
 
+      const additionalFeesDisplayString = formatFeesDisplay(order); // Use the new helper
+
       return {
         ...order,
         supplierName: supplierMap[order.contactId] || 'N/A',
         warehouseName: warehouseMap[order.warehouseId] || 'N/A',
         productsSubtotalNative, // Add for display in column
-        totalAdditionalCostsAZN, // Add for display in new column
+        totalAdditionalCostsAZN, // Keep for sorting
+        additionalFeesDisplayString, // New field for display
       };
     });
 
@@ -137,7 +165,7 @@ const PurchaseOrders: React.FC = () => {
       });
     }
     return sortableItems;
-  }, [purchaseOrders, supplierMap, warehouseMap, productMap, sortConfig, filterWarehouseId, startDateFilter, endDateFilter, productFilterId, currencyRates]);
+  }, [purchaseOrders, supplierMap, warehouseMap, productMap, sortConfig, filterWarehouseId, startDateFilter, endDateFilter, productFilterId, currencyRates, formatFeesDisplay]);
 
   const handleAddOrder = () => {
     setEditingOrderId(undefined);
@@ -343,7 +371,7 @@ const PurchaseOrders: React.FC = () => {
                     </span>
                   </TableCell>
                   <TableCell className="p-3 font-bold text-sky-600 dark:text-sky-400">{order.productsSubtotalNative.toFixed(2)} {order.currency}</TableCell>
-                  <TableCell className="p-3 font-bold text-orange-600 dark:text-orange-400">{order.totalAdditionalCostsAZN.toFixed(2)} AZN</TableCell>
+                  <TableCell className="p-3 font-bold text-orange-600 dark:text-orange-400">{order.additionalFeesDisplayString}</TableCell>
                   <TableCell className="p-3">
                     <Button variant="link" onClick={() => viewOrderDetails(order.id)} className="mr-2 p-0 h-auto">
                       {t('view')}
