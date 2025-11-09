@@ -136,6 +136,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
       category: 'products' | 'fees';
       orderType: 'sell' | 'purchase';
       currency: 'AZN' | 'USD' | 'EUR' | 'RUB'; // Native currency of the order
+      orderDate: string; // Added orderDate
     }[] = [];
 
     allOrders.forEach(order => {
@@ -170,6 +171,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
             category: 'products',
             orderType: 'sell',
             currency: 'AZN',
+            orderDate: sellOrder.orderDate, // Populate orderDate
           });
         }
       } else { // Outgoing Payments for Purchase Orders
@@ -191,6 +193,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
             category: 'products',
             orderType: 'purchase',
             currency: purchaseOrder.currency,
+            orderDate: purchaseOrder.orderDate, // Populate orderDate
           });
         }
         if (remainingFeesBalanceNative > 0.001) {
@@ -201,6 +204,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
             category: 'fees',
             orderType: 'purchase',
             currency: purchaseOrder.currency,
+            orderDate: purchaseOrder.orderDate, // Populate orderDate
           });
         }
       }
@@ -242,14 +246,17 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
         orderId: 0,
         paymentCategory: 'manual',
         manualDescription: prev?.manualDescription || '',
+        date: MOCK_CURRENT_DATE.toISOString().slice(0, 10), // Reset date for manual
       }));
     } else {
       const [orderIdStr, category] = value.split('-');
+      const selectedOrder = ordersWithBalance.find(o => `${o.id}-${o.category}` === value);
       setPayment(prev => ({
         ...prev,
         orderId: parseInt(orderIdStr),
         paymentCategory: category as 'products' | 'fees',
         manualDescription: undefined,
+        date: selectedOrder?.orderDate || MOCK_CURRENT_DATE.toISOString().slice(0, 10), // Set date from order
       }));
     }
   };
