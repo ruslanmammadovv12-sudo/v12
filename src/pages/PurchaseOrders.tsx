@@ -18,7 +18,7 @@ import { PurchaseOrder, Product, Supplier, Warehouse } from '@/types'; // Import
 import OrderDetailsExcelExportButton from '@/components/OrderDetailsExcelExportButton'; // Import new component
 
 type SortConfig = {
-  key: keyof PurchaseOrder | 'supplierName' | 'warehouseName' | 'productsSubtotalNative' | 'totalAdditionalCostsNative';
+  key: keyof PurchaseOrder | 'supplierName' | 'warehouseName' | 'productsSubtotalNative' | 'totalAdditionalCostsAZN';
   direction: 'ascending' | 'descending';
 };
 
@@ -74,31 +74,23 @@ const PurchaseOrders: React.FC = () => {
       // Calculate products subtotal in native currency
       const productsSubtotalNative = order.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
 
-      // Determine the exchange rate from order's native currency to AZN
-      const orderNativeToAznRate = order.currency === 'AZN' ? 1 : (order.exchangeRate || currencyRates[order.currency] || 1);
-
-      // Helper to convert a fee from its currency to the order's native currency
-      const convertFeeToOrderNativeCurrency = (amount: number, feeCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB') => {
+      // Helper to convert a fee to AZN
+      const convertFeeToAZN = (amount: number, feeCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB') => {
         if (amount === 0) return 0;
-        const feeInAzn = amount * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
-        // Convert from AZN to order's native currency
-        return feeInAzn / orderNativeToAznRate;
+        return amount * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
       };
 
-      let totalAdditionalCostsNative = 0;
-      totalAdditionalCostsNative += convertFeeToOrderNativeCurrency(order.transportationFees, order.transportationFeesCurrency);
-      totalAdditionalCostsNative += convertFeeToOrderNativeCurrency(order.customFees, order.customFeesCurrency);
-      totalAdditionalCostsNative += convertFeeToOrderNativeCurrency(order.additionalFees, order.additionalFeesCurrency);
-
-      const totalValueNative = productsSubtotalNative + totalAdditionalCostsNative; // This is the full total in native currency
+      let totalAdditionalCostsAZN = 0;
+      totalAdditionalCostsAZN += convertFeeToAZN(order.transportationFees, order.transportationFeesCurrency);
+      totalAdditionalCostsAZN += convertFeeToAZN(order.customFees, order.customFeesCurrency);
+      totalAdditionalCostsAZN += convertFeeToAZN(order.additionalFees, order.additionalFeesCurrency);
 
       return {
         ...order,
         supplierName: supplierMap[order.contactId] || 'N/A',
         warehouseName: warehouseMap[order.warehouseId] || 'N/A',
         productsSubtotalNative, // Add for display in column
-        totalAdditionalCostsNative, // Add for display in new column
-        totalValueNative, // Keep for sorting if needed, or remove if not used
+        totalAdditionalCostsAZN, // Add for display in new column
       };
     });
 
@@ -109,15 +101,15 @@ const PurchaseOrders: React.FC = () => {
         let valB: any = b[key];
 
         // Handle undefined/null values by treating them as empty strings or 0 for numbers
-        if (valA === undefined || valA === null) valA = (key === 'id' || key === 'productsSubtotalNative' || key === 'totalAdditionalCostsNative') ? 0 : '';
-        if (valB === undefined || valB === null) valB = (key === 'id' || key === 'productsSubtotalNative' || key === 'totalAdditionalCostsNative') ? 0 : '';
+        if (valA === undefined || valA === null) valA = (key === 'id' || key === 'productsSubtotalNative' || key === 'totalAdditionalCostsAZN') ? 0 : '';
+        if (valB === undefined || valB === null) valB = (key === 'id' || key === 'productsSubtotalNative' || key === 'totalAdditionalCostsAZN') ? 0 : '';
 
         let comparison = 0;
 
         switch (key) {
           case 'id':
           case 'productsSubtotalNative':
-          case 'totalAdditionalCostsNative':
+          case 'totalAdditionalCostsAZN':
             comparison = (valA as number) - (valB as number);
             break;
           case 'orderDate':
@@ -327,8 +319,8 @@ const PurchaseOrders: React.FC = () => {
               <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('productsSubtotalNative')}>
                 {t('productsSubtotal')} {getSortIndicator('productsSubtotalNative')}
               </TableHead>
-              <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('totalAdditionalCostsNative')}>
-                {t('additionalCosts')} {getSortIndicator('totalAdditionalCostsNative')}
+              <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('totalAdditionalCostsAZN')}>
+                {t('additionalCosts')} {getSortIndicator('totalAdditionalCostsAZN')}
               </TableHead>
               <TableHead className="p-3">{t('actions')}</TableHead>
             </TableRow>
@@ -351,7 +343,7 @@ const PurchaseOrders: React.FC = () => {
                     </span>
                   </TableCell>
                   <TableCell className="p-3 font-bold text-sky-600 dark:text-sky-400">{order.productsSubtotalNative.toFixed(2)} {order.currency}</TableCell>
-                  <TableCell className="p-3 font-bold text-orange-600 dark:text-orange-400">{order.totalAdditionalCostsNative.toFixed(2)} {order.currency}</TableCell>
+                  <TableCell className="p-3 font-bold text-orange-600 dark:text-orange-400">{order.totalAdditionalCostsAZN.toFixed(2)} AZN</TableCell>
                   <TableCell className="p-3">
                     <Button variant="link" onClick={() => viewOrderDetails(order.id)} className="mr-2 p-0 h-auto">
                       {t('view')}
