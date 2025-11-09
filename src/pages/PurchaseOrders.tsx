@@ -18,7 +18,7 @@ import { PurchaseOrder, Product, Supplier, Warehouse } from '@/types'; // Import
 import OrderDetailsExcelExportButton from '@/components/OrderDetailsExcelExportButton'; // Import new component
 
 type SortConfig = {
-  key: keyof PurchaseOrder | 'supplierName' | 'warehouseName' | 'totalValueNative';
+  key: keyof PurchaseOrder | 'supplierName' | 'warehouseName' | 'productsSubtotalNative' | 'totalAdditionalCostsNative';
   direction: 'ascending' | 'descending';
 };
 
@@ -85,20 +85,20 @@ const PurchaseOrders: React.FC = () => {
         return feeInAzn / orderNativeToAznRate;
       };
 
-      let totalFeesNative = 0;
-      totalFeesNative += convertFeeToOrderNativeCurrency(order.transportationFees, order.transportationFeesCurrency);
-      totalFeesNative += convertFeeToOrderNativeCurrency(order.customFees, order.customFeesCurrency);
-      totalFeesNative += convertFeeToOrderNativeCurrency(order.additionalFees, order.additionalFeesCurrency);
+      let totalAdditionalCostsNative = 0;
+      totalAdditionalCostsNative += convertFeeToOrderNativeCurrency(order.transportationFees, order.transportationFeesCurrency);
+      totalAdditionalCostsNative += convertFeeToOrderNativeCurrency(order.customFees, order.customFeesCurrency);
+      totalAdditionalCostsNative += convertFeeToOrderNativeCurrency(order.additionalFees, order.additionalFeesCurrency);
 
-      const totalValueNative = productsSubtotalNative + totalFeesNative;
+      const totalValueNative = productsSubtotalNative + totalAdditionalCostsNative; // This is the full total in native currency
 
       return {
         ...order,
         supplierName: supplierMap[order.contactId] || 'N/A',
         warehouseName: warehouseMap[order.warehouseId] || 'N/A',
-        totalValueNative, // Add this calculated field
-        productsSubtotalNative, // Add for details modal
-        totalFeesNative, // Add for details modal
+        productsSubtotalNative, // Add for display in column
+        totalAdditionalCostsNative, // Add for display in new column
+        totalValueNative, // Keep for sorting if needed, or remove if not used
       };
     });
 
@@ -109,14 +109,15 @@ const PurchaseOrders: React.FC = () => {
         let valB: any = b[key];
 
         // Handle undefined/null values by treating them as empty strings or 0 for numbers
-        if (valA === undefined || valA === null) valA = (key === 'id' || key === 'totalValueNative') ? 0 : '';
-        if (valB === undefined || valB === null) valB = (key === 'id' || key === 'totalValueNative') ? 0 : '';
+        if (valA === undefined || valA === null) valA = (key === 'id' || key === 'productsSubtotalNative' || key === 'totalAdditionalCostsNative') ? 0 : '';
+        if (valB === undefined || valB === null) valB = (key === 'id' || key === 'productsSubtotalNative' || key === 'totalAdditionalCostsNative') ? 0 : '';
 
         let comparison = 0;
 
         switch (key) {
           case 'id':
-          case 'totalValueNative':
+          case 'productsSubtotalNative':
+          case 'totalAdditionalCostsNative':
             comparison = (valA as number) - (valB as number);
             break;
           case 'orderDate':
@@ -323,8 +324,11 @@ const PurchaseOrders: React.FC = () => {
               <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('status')}>
                 {t('status')} {getSortIndicator('status')}
               </TableHead>
-              <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('totalValueNative')}>
-                {t('totalValue')} {getSortIndicator('totalValueNative')}
+              <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('productsSubtotalNative')}>
+                {t('productsSubtotal')} {getSortIndicator('productsSubtotalNative')}
+              </TableHead>
+              <TableHead className="p-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600" onClick={() => requestSort('totalAdditionalCostsNative')}>
+                {t('additionalCosts')} {getSortIndicator('totalAdditionalCostsNative')}
               </TableHead>
               <TableHead className="p-3">{t('actions')}</TableHead>
             </TableRow>
@@ -346,7 +350,8 @@ const PurchaseOrders: React.FC = () => {
                       {t(order.status.toLowerCase() as keyof typeof t)}
                     </span>
                   </TableCell>
-                  <TableCell className="p-3 font-bold text-sky-600 dark:text-sky-400">{order.totalValueNative.toFixed(2)} {order.currency}</TableCell>
+                  <TableCell className="p-3 font-bold text-sky-600 dark:text-sky-400">{order.productsSubtotalNative.toFixed(2)} {order.currency}</TableCell>
+                  <TableCell className="p-3 font-bold text-orange-600 dark:text-orange-400">{order.totalAdditionalCostsNative.toFixed(2)} {order.currency}</TableCell>
                   <TableCell className="p-3">
                     <Button variant="link" onClick={() => viewOrderDetails(order.id)} className="mr-2 p-0 h-auto">
                       {t('view')}
@@ -362,7 +367,7 @@ const PurchaseOrders: React.FC = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="p-4 text-center text-gray-500 dark:text-slate-400">
+                <TableCell colSpan={8} className="p-4 text-center text-gray-500 dark:text-slate-400">
                   {filterWarehouseId !== 'all' || startDateFilter || endDateFilter || productFilterId !== 'all' ? t('noItemsFound') : t('noItemsFound')}
                 </TableCell>
               </TableRow>
