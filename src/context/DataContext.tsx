@@ -42,6 +42,7 @@ const initialSettings: Settings = {
   defaultVat: 18,
   defaultMarkup: 70,
   currencyRates: defaultCurrencyRates,
+  displayScale: 100, // New: Default display scale
 };
 
 // --- Context Definition ---

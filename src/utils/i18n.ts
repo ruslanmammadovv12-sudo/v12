@@ -144,7 +144,7 @@ const i18n = {
     purchaseOrdersImportExportDescription: 'Import new purchase orders (items must be added manually) or export detailed purchase orders, with each order on a separate sheet.',
     sellOrdersImportExportDescription: 'Import new sell orders (items must be added manually) or export detailed sell orders, with each order on a separate sheet.',
     incomingPaymentsImportExportDescription: 'Import new incoming payments or export your existing incoming payment records.',
-    outgoingPaymentsImportExportDescription: 'Import new outgoing payments or export your existing outgoing payment records.',
+    outgoingPaymentsImportExportDescription: 'Import new outgoing payment records or export your existing outgoing payment records.',
     productMovementsImportExportDescription: 'Import new product movements (items must be added manually) or export your existing product movement records.',
     itemsNotImportedWarning: 'Order/Movement items were not imported and must be added manually.',
     importErrorsFound: 'Import errors found',
@@ -172,6 +172,12 @@ const i18n = {
     deletedAt: 'Deleted At',
     restore: 'Restore',
     movement: 'Movement',
+    // New for display scaling
+    programDisplayScaling: 'Program Display Scaling',
+    displayScale: 'Display Scale',
+    saveDisplayScale: 'Save Display Scale',
+    displayScaleUpdated: 'Display scale updated.',
+    additionalCosts: 'Additional Costs',
   }
 };
 

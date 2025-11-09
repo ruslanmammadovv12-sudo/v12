@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import ImageUpload from '@/components/ImageUpload';
 import { toast } from 'sonner';
 import CodeConfirmationModal from '@/components/CodeConfirmationModal'; // Import the new component
+import { Slider } from '@/components/ui/slider'; // Import Slider component
 import { Settings, CurrencyRates, Product, Customer } from '@/types'; // Import types from types file
 
 const SettingsPage: React.FC = () => {
@@ -20,6 +21,7 @@ const SettingsPage: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(settings.theme);
   const [defaultVat, setDefaultVat] = useState(settings.defaultVat);
   const [defaultMarkup, setDefaultMarkup] = useState(settings.defaultMarkup);
+  const [displayScale, setDisplayScale] = useState(settings.displayScale); // New state for display scale
 
   const [usdRate, setUsdRate] = useState(currencyRates.USD);
   const [eurRate, setEurRate] = useState(currencyRates.EUR);
@@ -35,6 +37,7 @@ const SettingsPage: React.FC = () => {
     setTheme(settings.theme);
     setDefaultVat(settings.defaultVat);
     setDefaultMarkup(settings.defaultMarkup);
+    setDisplayScale(settings.displayScale); // Initialize display scale
     setUsdRate(currencyRates.USD);
     setEurRate(currencyRates.EUR);
     setRubRate(currencyRates.RUB);
@@ -70,6 +73,15 @@ const SettingsPage: React.FC = () => {
     }
     setSettings(prev => ({ ...prev, defaultMarkup }));
     toast.success(t('success'), { description: t('markupUpdated') });
+  };
+
+  const handleSaveDisplayScale = () => {
+    if (isNaN(displayScale) || displayScale < 50 || displayScale > 150) {
+      toast.error('Validation Error', { description: 'Display scale must be between 50% and 150%.' });
+      return;
+    }
+    setSettings(prev => ({ ...prev, displayScale }));
+    toast.success(t('success'), { description: t('displayScaleUpdated') });
   };
 
   const handleThemeChange = (value: 'light' | 'dark') => {
@@ -173,6 +185,40 @@ const SettingsPage: React.FC = () => {
               <SelectItem value="dark">{t('dark')}</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {/* Program Display Scaling */}
+      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md mb-6">
+        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-300 mb-4">{t('programDisplayScaling')}</h2>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="displayScale" className="text-right">{t('displayScale')}</Label>
+            <div className="col-span-2 flex items-center gap-2">
+              <Slider
+                id="displayScale"
+                min={50}
+                max={150}
+                step={1}
+                value={[displayScale]}
+                onValueChange={(value) => setDisplayScale(value[0])}
+                className="w-full"
+              />
+            </div>
+            <Input
+              type="number"
+              min="50"
+              max="150"
+              step="1"
+              value={displayScale}
+              onChange={(e) => setDisplayScale(parseInt(e.target.value) || 0)}
+              className="col-span-1 text-center"
+            />
+            <span className="text-gray-700 dark:text-slate-300">%</span>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={handleSaveDisplayScale}>{t('saveDisplayScale')}</Button>
         </div>
       </div>
 

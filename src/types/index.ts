@@ -110,6 +110,7 @@ export interface Settings {
   defaultVat: number;
   defaultMarkup: number;
   currencyRates: CurrencyRates;
+  displayScale: number; // New: Program display scaling percentage
 }
 
 // --- Recycle Bin Types ---

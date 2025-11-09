@@ -14,12 +14,31 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { settings } = useData();
 
   useEffect(() => {
+    // Apply theme
     if (settings.theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [settings.theme]);
+
+    // Apply display scaling
+    const scale = settings.displayScale / 100;
+    document.documentElement.style.transform = `scale(${scale})`;
+    document.documentElement.style.transformOrigin = 'top left';
+    // Adjust width/height to prevent scrollbars due to scaling
+    document.documentElement.style.width = `${100 / scale}%`;
+    document.documentElement.style.height = `${100 / scale}%`;
+    document.body.style.overflow = 'auto'; // Ensure body can scroll if content overflows after scaling
+
+    return () => {
+      // Clean up styles on unmount or setting change
+      document.documentElement.style.transform = '';
+      document.documentElement.style.transformOrigin = '';
+      document.documentElement.style.width = '';
+      document.documentElement.style.height = '';
+      document.body.style.overflow = '';
+    };
+  }, [settings.theme, settings.displayScale]);
 
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-slate-900">
