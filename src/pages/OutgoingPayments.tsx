@@ -28,42 +28,28 @@ const OutgoingPayments: React.FC = () => {
   const purchaseOrderMap = useMemo(() => purchaseOrders.reduce((acc, o) => ({ ...acc, [o.id]: o }), {} as { [key: number]: PurchaseOrder }), [purchaseOrders]);
   const supplierMap = useMemo(() => suppliers.reduce((acc, s) => ({ ...acc, [s.id]: s.name }), {} as { [key: number]: string }), [suppliers]);
 
-  // Aggregate payments by order ID and category (products/fees)
-  const paymentsByOrderAndCategory = useMemo(() => {
-    const result: { [orderId: number]: { products: number; fees: number } } = {};
+  // Aggregate payments by order ID and specific category (products/transportationFees/customFees/additionalFees) in AZN
+  const paymentsByOrderAndCategoryAZN = useMemo(() => {
+    const result: {
+      [orderId: number]: {
+        products: number;
+        transportationFees: number;
+        customFees: number;
+        additionalFees: number;
+      };
+    } = {};
+
     outgoingPayments.forEach(p => {
-      if (p.orderId !== 0) {
+      if (p.orderId !== 0 && p.paymentCategory !== 'manual') {
         if (!result[p.orderId]) {
-          result[p.orderId] = { products: 0, fees: 0 };
+          result[p.orderId] = { products: 0, transportationFees: 0, customFees: 0, additionalFees: 0 };
         }
-        // Convert payment amount to AZN for aggregation
         const amountInAZN = p.amount * (p.paymentCurrency === 'AZN' ? 1 : (p.paymentExchangeRate || currencyRates[p.paymentCurrency] || 1));
-        const category = p.paymentCategory || 'products'; // Default for old data
-        result[p.orderId][category] += amountInAZN;
+        result[p.orderId][p.paymentCategory] += amountInAZN;
       }
     });
     return result;
   }, [outgoingPayments, currencyRates]);
-
-  // Calculate total products value and total fees value for a purchase order in AZN
-  const calculatePurchaseOrderBreakdown = useCallback((order: PurchaseOrder) => {
-    const orderNativeToAznRate = order.currency === 'AZN' ? 1 : (order.exchangeRate || currencyRates[order.currency] || 1);
-
-    const productsSubtotalNative = order.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
-    const productsSubtotalAZN = productsSubtotalNative * orderNativeToAznRate;
-
-    const convertFeeToAzn = (amount: number, feeCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB') => {
-      return amount * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
-    };
-
-    const transportationFeesAZN = convertFeeToAzn(order.transportationFees, order.transportationFeesCurrency);
-    const customFeesAZN = convertFeeToAzn(order.customFees, order.customFeesCurrency);
-    const additionalFeesAZN = convertFeeToAzn(order.additionalFees, order.additionalFeesCurrency);
-    const totalFeesAZN = transportationFeesAZN + customFeesAZN + additionalFeesAZN;
-
-    return { productsSubtotalAZN, totalFeesAZN };
-  }, [currencyRates]);
-
 
   const filteredAndSortedPayments = useMemo(() => {
     let filteredPayments = outgoingPayments;
@@ -78,44 +64,62 @@ const OutgoingPayments: React.FC = () => {
     const sortableItems = filteredPayments.map(p => {
       let linkedOrderDisplay = '';
       let remainingAmountText = '';
+      let rowClass = 'border-b dark:border-slate-700 text-gray-800 dark:text-slate-300';
 
       if (p.orderId === 0) {
         linkedOrderDisplay = t('manualExpense');
       } else {
         const order = purchaseOrderMap[p.orderId];
         const supplierName = order ? supplierMap[order.contactId] || 'Unknown' : 'N/A';
-        const categoryText = p.paymentCategory === 'products' ? t('paymentForProducts') : (p.paymentCategory === 'fees' ? t('paymentForFees') : '');
+        
+        let categoryText = '';
+        switch (p.paymentCategory) {
+          case 'products': categoryText = t('paymentForProducts'); break;
+          case 'transportationFees': categoryText = t('paymentForTransportationFees'); break;
+          case 'customFees': categoryText = t('paymentForCustomFees'); break;
+          case 'additionalFees': categoryText = t('paymentForAdditionalFees'); break;
+          default: categoryText = ''; break;
+        }
         linkedOrderDisplay = `${t('orderId')} #${p.orderId} (${supplierName}) ${categoryText}`;
 
         if (order) {
-          const { productsSubtotalAZN, totalFeesAZN } = calculatePurchaseOrderBreakdown(order);
-          const currentOrderPayments = paymentsByOrderAndCategory[order.id] || { products: 0, fees: 0 };
-
-          let totalPaidForCategoryInAZN = 0;
-          let totalCategoryValueInAZN = 0;
+          // Calculate remaining balance for the specific category in its native currency
+          let totalCategoryValueNative = 0;
+          let totalPaidForCategoryNative = 0;
+          let categoryCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB' = 'AZN';
 
           if (p.paymentCategory === 'products') {
-            totalPaidForCategoryInAZN = currentOrderPayments.products;
-            totalCategoryValueInAZN = productsSubtotalAZN;
-          } else if (p.paymentCategory === 'fees') {
-            totalPaidForCategoryInAZN = currentOrderPayments.fees;
-            totalCategoryValueInAZN = totalFeesAZN;
-          } else {
-            totalPaidForCategoryInAZN = currentOrderPayments.products;
-            totalCategoryValueInAZN = productsSubtotalAZN;
+            totalCategoryValueNative = order.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
+            categoryCurrency = order.currency;
+            // Sum payments for 'products' category, converted to order.currency
+            totalPaidForCategoryNative = (paymentsByOrderAndCategoryAZN[order.id]?.products || 0) / (order.currency === 'AZN' ? 1 : (order.exchangeRate || currencyRates[order.currency] || 1));
+          } else if (p.paymentCategory === 'transportationFees') {
+            totalCategoryValueNative = order.transportationFees;
+            categoryCurrency = order.transportationFeesCurrency;
+            totalPaidForCategoryNative = (paymentsByOrderAndCategoryAZN[order.id]?.transportationFees || 0) / (categoryCurrency === 'AZN' ? 1 : currencyRates[categoryCurrency] || 1);
+          } else if (p.paymentCategory === 'customFees') {
+            totalCategoryValueNative = order.customFees;
+            categoryCurrency = order.customFeesCurrency;
+            totalPaidForCategoryNative = (paymentsByOrderAndCategoryAZN[order.id]?.customFees || 0) / (categoryCurrency === 'AZN' ? 1 : currencyRates[categoryCurrency] || 1);
+          } else if (p.paymentCategory === 'additionalFees') {
+            totalCategoryValueNative = order.additionalFees;
+            categoryCurrency = order.additionalFeesCurrency;
+            totalPaidForCategoryNative = (paymentsByOrderAndCategoryAZN[order.id]?.additionalFees || 0) / (categoryCurrency === 'AZN' ? 1 : currencyRates[categoryCurrency] || 1);
           }
 
-          const currentRemainingBalanceInAZN = totalCategoryValueInAZN - totalPaidForCategoryInAZN;
-          const isFullyPaid = currentRemainingBalanceInAZN <= 0.001;
+          const currentRemainingBalanceNative = totalCategoryValueNative - totalPaidForCategoryNative;
+          const isFullyPaid = currentRemainingBalanceNative <= 0.001;
 
           if (isFullyPaid) {
+            rowClass += ' bg-green-100 dark:bg-green-900/50';
             remainingAmountText = `<span class="text-xs text-green-700 dark:text-green-400 ml-1">(${t('fullyPaid')})</span>`;
           } else {
-            remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalanceInAZN.toFixed(2)} AZN)</span>`;
+            rowClass += ' bg-red-100 dark:bg-red-900/50';
+            remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalanceNative.toFixed(2)} ${categoryCurrency})</span>`;
           }
         }
       }
-      return { ...p, linkedOrderDisplay, remainingAmountText };
+      return { ...p, linkedOrderDisplay, remainingAmountText, rowClass };
     });
 
     if (sortConfig.key) {
@@ -135,7 +139,7 @@ const OutgoingPayments: React.FC = () => {
       });
     }
     return sortableItems;
-  }, [outgoingPayments, purchaseOrders, suppliers, sortConfig, startDateFilter, endDateFilter, paymentsByOrderAndCategory, calculatePurchaseOrderBreakdown]);
+  }, [outgoingPayments, purchaseOrders, suppliers, sortConfig, startDateFilter, endDateFilter, paymentsByOrderAndCategoryAZN, currencyRates]);
 
   const requestSort = (key: SortConfig['key']) => {
     let direction: SortConfig['direction'] = 'ascending';
@@ -231,51 +235,15 @@ const OutgoingPayments: React.FC = () => {
           <TableBody>
             {filteredAndSortedPayments.length > 0 ? (
               filteredAndSortedPayments.map(p => {
-                let rowClass = 'border-b dark:border-slate-700 text-gray-800 dark:text-slate-300';
-                let remainingAmountText = '';
-
-                if (p.orderId !== 0) {
-                  const order = purchaseOrderMap[p.orderId];
-                  if (order) {
-                    const { productsSubtotalAZN, totalFeesAZN } = calculatePurchaseOrderBreakdown(order);
-                    const currentOrderPayments = paymentsByOrderAndCategory[order.id] || { products: 0, fees: 0 };
-
-                    let totalPaidForCategoryInAZN = 0;
-                    let totalCategoryValueInAZN = 0;
-
-                    if (p.paymentCategory === 'products') {
-                      totalPaidForCategoryInAZN = currentOrderPayments.products;
-                      totalCategoryValueInAZN = productsSubtotalAZN;
-                    } else if (p.paymentCategory === 'fees') {
-                      totalPaidForCategoryInAZN = currentOrderPayments.fees;
-                      totalCategoryValueInAZN = totalFeesAZN;
-                    } else {
-                      totalPaidForCategoryInAZN = currentOrderPayments.products;
-                      totalCategoryValueInAZN = productsSubtotalAZN;
-                    }
-
-                    const currentRemainingBalanceInAZN = totalCategoryValueInAZN - totalPaidForCategoryInAZN;
-                    const isFullyPaid = currentRemainingBalanceInAZN <= 0.001;
-
-                    if (isFullyPaid) {
-                      rowClass += ' bg-green-100 dark:bg-green-900/50';
-                      remainingAmountText = `<span class="text-xs text-green-700 dark:text-green-400 ml-1">(${t('fullyPaid')})</span>`;
-                    } else {
-                      rowClass += ' bg-red-100 dark:bg-red-900/50';
-                      remainingAmountText = `<span class="text-xs text-red-600 dark:text-red-400 ml-1">(${t('remaining')}: ${currentRemainingBalanceInAZN.toFixed(2)} AZN)</span>`;
-                    }
-                  }
-                }
-
                 return (
-                  <TableRow key={p.id} className={rowClass}>
+                  <TableRow key={p.id} className={p.rowClass}>
                     <TableCell className="p-3 font-semibold">
                       #{p.id} {p.orderId === 0 && p.manualDescription ? `- ${p.manualDescription}` : ''}
                     </TableCell>
                     <TableCell className="p-3">{p.linkedOrderDisplay}</TableCell>
                     <TableCell className="p-3">{p.date}</TableCell>
                     <TableCell className="p-3 font-bold">
-                      {p.amount.toFixed(2)} {p.paymentCurrency} <span dangerouslySetInnerHTML={{ __html: remainingAmountText }} />
+                      {p.amount.toFixed(2)} {p.paymentCurrency} <span dangerouslySetInnerHTML={{ __html: p.remainingAmountText }} />
                     </TableCell>
                     <TableCell className="p-3">{p.method}</TableCell>
                     <TableCell className="p-3">

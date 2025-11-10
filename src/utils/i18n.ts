@@ -91,7 +91,7 @@ const i18n = {
     productMovementAlreadyGenerated: 'A product movement has been generated for this sell order.',
     totalLandedCost: 'Total Landed Cost',
     paymentForProducts: 'Payment for Products',
-    paymentForFees: 'Payment for Fees',
+    paymentForFees: 'Payment for Fees', // This is a generic one, will be replaced by specific ones
     productsTotal: 'Products Total',
     feesTotal: 'Fees Total',
     itemTotal: 'Item Total',
@@ -184,6 +184,9 @@ const i18n = {
     noSupplierFound: 'No supplier found.', // New translation
     searchCustomerByName: 'Search customer by name...', // New translation
     noCustomerFound: 'No customer found.', // New translation
+    paymentForTransportationFees: 'Payment for Transportation Fees', // New translation
+    paymentForCustomFees: 'Payment for Custom Fees', // New translation
+    paymentForAdditionalFees: 'Payment for Additional Fees', // New translation
   }
 };
 

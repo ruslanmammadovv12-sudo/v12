@@ -37,7 +37,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
   const [manualExchangeRateInput, setManualExchangeRateInput] = useState<string>('');
   const [manualExchangeRate, setManualExchangeRate] = useState<number | undefined>(undefined);
 
-  // selectedOrderId will now be a composite string: '0' for manual, or 'orderId-category' (e.g., '123-products', '123-fees')
+  // selectedOrderId will now be a composite string: '0' for manual, or 'orderId-category' (e.g., '123-products', '123-transportationFees')
   const [selectedOrderIdentifier, setSelectedOrderIdentifier] = useState<string>('0');
 
   const allOrders = isIncoming ? sellOrders : purchaseOrders;
@@ -49,48 +49,28 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
   const customerMap = useMemo(() => customers.reduce((acc, c) => ({ ...acc, [c.id]: c.name }), {} as { [key: number]: string }), [customers]); // Added customerMap
   const supplierMap = useMemo(() => suppliers.reduce((acc, s) => ({ ...acc, [s.id]: s.name }), {} as { [key: number]: string }), [suppliers]); // Added supplierMap
 
-  // Aggregate payments by order ID and category (products/fees)
-  const paymentsByOrderAndCategory = useMemo(() => {
-    const result: { [orderId: number]: { products: number; fees: number } } = {};
+  // Aggregate payments by order ID and specific category (products/transportationFees/customFees/additionalFees) in AZN
+  const paymentsByOrderAndCategoryAZN = useMemo(() => {
+    const result: {
+      [orderId: number]: {
+        products: number;
+        transportationFees: number;
+        customFees: number;
+        additionalFees: number;
+      };
+    } = {};
+
     allPayments.forEach(p => {
-      if (p.orderId !== 0) {
+      if (p.orderId !== 0 && p.paymentCategory !== 'manual') {
         if (!result[p.orderId]) {
-          result[p.orderId] = { products: 0, fees: 0 };
+          result[p.orderId] = { products: 0, transportationFees: 0, customFees: 0, additionalFees: 0 };
         }
-        // Convert payment amount to AZN for aggregation
         const amountInAZN = p.amount * (p.paymentCurrency === 'AZN' ? 1 : (p.paymentExchangeRate || currencyRates[p.paymentCurrency] || 1));
-        const category = p.paymentCategory || 'products'; // Default for old data
-        result[p.orderId][category] += amountInAZN;
+        result[p.orderId][p.paymentCategory] += amountInAZN;
       }
     });
     return result;
   }, [allPayments, currencyRates]);
-
-  // Calculate total products value and total fees value for a purchase order in AZN
-  const calculatePurchaseOrderBreakdown = useCallback((order: PurchaseOrder) => {
-    const orderNativeToAznRate = order.currency === 'AZN' ? 1 : (order.exchangeRate || currencyRates[order.currency] || 1);
-
-    const productsSubtotalNative = order.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
-    const productsSubtotalAZN = productsSubtotalNative * orderNativeToAznRate;
-
-    const convertFeeToAzn = (amount: number, feeCurrency: 'AZN' | 'USD' | 'EUR' | 'RUB') => {
-      return amount * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
-    };
-
-    const transportationFeesAZN = convertFeeToAzn(order.transportationFees, order.transportationFeesCurrency);
-    const customFeesAZN = convertFeeToAzn(order.customFees, order.customFeesCurrency);
-    const additionalFeesAZN = convertFeeToAzn(order.additionalFees, order.additionalFeesCurrency);
-    const totalFeesAZN = transportationFeesAZN + customFeesAZN + additionalFeesAZN;
-
-    const uniqueFeeCurrencies = new Set<string>();
-    if (order.transportationFees > 0) uniqueFeeCurrencies.add(order.transportationFeesCurrency);
-    if (order.customFees > 0) uniqueFeeCurrencies.add(order.customFeesCurrency);
-    if (order.additionalFees > 0) uniqueFeeCurrencies.add(order.additionalFeesCurrency);
-
-    const feeCurrenciesString = uniqueFeeCurrencies.size > 0 ? ` (${Array.from(uniqueFeeCurrencies).join(', ')})` : '';
-
-    return { productsSubtotalAZN, totalFeesAZN, orderNativeToAznRate, feeCurrenciesString };
-  }, [currencyRates]);
 
   useEffect(() => {
     if (isEdit) {
@@ -109,7 +89,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
         if (existingPayment.orderId === 0) {
           setSelectedOrderIdentifier('0');
         } else {
-          const category = existingPayment.paymentCategory || 'products';
+          const category = existingPayment.paymentCategory || 'products'; // Default for old data
           setSelectedOrderIdentifier(`${existingPayment.orderId}-${category}`);
         }
       }
@@ -139,28 +119,21 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
     const list: {
       id: number;
       display: string;
-      remainingAmount: number; // This will be in the order's native currency for display
-      category: 'products' | 'fees';
+      remainingAmount: number; // This will be in the specific category's native currency
+      category: Payment['paymentCategory']; // More specific categories
       orderType: 'sell' | 'purchase';
-      currency: 'AZN' | 'USD' | 'EUR' | 'RUB'; // Native currency of the order
+      currency: 'AZN' | 'USD' | 'EUR' | 'RUB'; // Native currency of the remaining amount
       orderDate: string; // Added orderDate
     }[] = [];
 
     allOrders.forEach(order => {
-      const currentOrderPayments = paymentsByOrderAndCategory[order.id] || { products: 0, fees: 0 };
+      const currentOrderPayments = paymentsByOrderAndCategoryAZN[order.id] || { products: 0, transportationFees: 0, customFees: 0, additionalFees: 0 };
 
       // Adjust for the current payment being edited
-      let adjustedProductsPaidAZN = currentOrderPayments.products;
-      let adjustedFeesPaidAZN = currentOrderPayments.fees;
-
-      if (isEdit && payment.orderId === order.id) {
-        const existingPaymentCategory = payment.paymentCategory || 'products';
+      let adjustedPaymentsAZN = { ...currentOrderPayments };
+      if (isEdit && payment.orderId === order.id && payment.paymentCategory !== 'manual') {
         const existingPaymentAmountInAZN = (payment.amount || 0) * (payment.paymentCurrency === 'AZN' ? 1 : (payment.paymentExchangeRate || currencyRates[payment.paymentCurrency || 'AZN'] || 1));
-        if (existingPaymentCategory === 'products') {
-          adjustedProductsPaidAZN -= existingPaymentAmountInAZN;
-        } else if (existingPaymentCategory === 'fees') {
-          adjustedFeesPaidAZN -= existingPaymentAmountInAZN;
-        }
+        adjustedPaymentsAZN[payment.paymentCategory] -= existingPaymentAmountInAZN;
       }
 
       if (isIncoming) { // Sell Orders (always in AZN in current model)
@@ -168,7 +141,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
         const customerName = customerMap[sellOrder.contactId] || 'Unknown Customer';
         const totalOrderValueAZN = sellOrder.total;
 
-        const remainingTotalAZN = totalOrderValueAZN - adjustedProductsPaidAZN;
+        const remainingTotalAZN = totalOrderValueAZN - adjustedPaymentsAZN.products; // Sell orders only have 'products' category
 
         if (remainingTotalAZN > 0.001) {
           list.push({
@@ -184,13 +157,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
       } else { // Outgoing Payments for Purchase Orders
         const purchaseOrder = order as PurchaseOrder;
         const supplierName = supplierMap[purchaseOrder.contactId] || 'Unknown Supplier';
-        const { productsSubtotalAZN, totalFeesAZN, orderNativeToAznRate, feeCurrenciesString } = calculatePurchaseOrderBreakdown(purchaseOrder);
-
-        const remainingProductsBalanceAZN = productsSubtotalAZN - adjustedProductsPaidAZN;
-        const remainingFeesBalanceAZN = totalFeesAZN - adjustedFeesPaidAZN;
-
-        const remainingProductsBalanceNative = remainingProductsBalanceAZN / orderNativeToAznRate;
-        const remainingFeesBalanceNative = remainingFeesBalanceAZN / orderNativeToAznRate;
+        
+        // Products balance
+        const productsSubtotalNative = purchaseOrder.items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
+        const productsSubtotalAZN = productsSubtotalNative * (purchaseOrder.currency === 'AZN' ? 1 : (purchaseOrder.exchangeRate || currencyRates[purchaseOrder.currency] || 1));
+        const remainingProductsBalanceAZN = productsSubtotalAZN - adjustedPaymentsAZN.products;
+        const remainingProductsBalanceNative = remainingProductsBalanceAZN / (purchaseOrder.currency === 'AZN' ? 1 : (purchaseOrder.exchangeRate || currencyRates[purchaseOrder.currency] || 1));
 
         if (remainingProductsBalanceNative > 0.001) {
           list.push({
@@ -200,24 +172,76 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
             category: 'products',
             orderType: 'purchase',
             currency: purchaseOrder.currency,
-            orderDate: purchaseOrder.orderDate, // Populate orderDate
+            orderDate: purchaseOrder.orderDate,
           });
         }
-        if (remainingFeesBalanceNative > 0.001) {
-          list.push({
-            id: purchaseOrder.id,
-            display: `${t('orderId')} #${purchaseOrder.id} (${supplierName}) - ${purchaseOrder.orderDate} - ${t('feesTotal')}${feeCurrenciesString} - ${t('remaining')}: ${remainingFeesBalanceNative.toFixed(2)} ${purchaseOrder.currency}`,
-            remainingAmount: remainingFeesBalanceNative,
-            category: 'fees',
-            orderType: 'purchase',
-            currency: purchaseOrder.currency,
-            orderDate: purchaseOrder.orderDate, // Populate orderDate
-          });
+
+        // Transportation Fees balance
+        if (purchaseOrder.transportationFees > 0) {
+          const feeAmountNative = purchaseOrder.transportationFees;
+          const feeCurrency = purchaseOrder.transportationFeesCurrency;
+          const feeAmountAZN = feeAmountNative * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
+          const remainingFeeBalanceAZN = feeAmountAZN - adjustedPaymentsAZN.transportationFees;
+          const remainingFeeBalanceNative = remainingFeeBalanceAZN / (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
+
+          if (remainingFeeBalanceNative > 0.001) {
+            list.push({
+              id: purchaseOrder.id,
+              display: `${t('orderId')} #${purchaseOrder.id} (${supplierName}) - ${purchaseOrder.orderDate} - ${t('transportationFees')} - ${t('remaining')}: ${remainingFeeBalanceNative.toFixed(2)} ${feeCurrency}`,
+              remainingAmount: remainingFeeBalanceNative,
+              category: 'transportationFees',
+              orderType: 'purchase',
+              currency: feeCurrency,
+              orderDate: purchaseOrder.orderDate,
+            });
+          }
+        }
+
+        // Custom Fees balance
+        if (purchaseOrder.customFees > 0) {
+          const feeAmountNative = purchaseOrder.customFees;
+          const feeCurrency = purchaseOrder.customFeesCurrency;
+          const feeAmountAZN = feeAmountNative * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
+          const remainingFeeBalanceAZN = feeAmountAZN - adjustedPaymentsAZN.customFees;
+          const remainingFeeBalanceNative = remainingFeeBalanceAZN / (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
+
+          if (remainingFeeBalanceNative > 0.001) {
+            list.push({
+              id: purchaseOrder.id,
+              display: `${t('orderId')} #${purchaseOrder.id} (${supplierName}) - ${purchaseOrder.orderDate} - ${t('customFees')} - ${t('remaining')}: ${remainingFeeBalanceNative.toFixed(2)} ${feeCurrency}`,
+              remainingAmount: remainingFeeBalanceNative,
+              category: 'customFees',
+              orderType: 'purchase',
+              currency: feeCurrency,
+              orderDate: purchaseOrder.orderDate,
+            });
+          }
+        }
+
+        // Additional Fees balance
+        if (purchaseOrder.additionalFees > 0) {
+          const feeAmountNative = purchaseOrder.additionalFees;
+          const feeCurrency = purchaseOrder.additionalFeesCurrency;
+          const feeAmountAZN = feeAmountNative * (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
+          const remainingFeeBalanceAZN = feeAmountAZN - adjustedPaymentsAZN.additionalFees;
+          const remainingFeeBalanceNative = remainingFeeBalanceAZN / (feeCurrency === 'AZN' ? 1 : currencyRates[feeCurrency] || 1);
+
+          if (remainingFeeBalanceNative > 0.001) {
+            list.push({
+              id: purchaseOrder.id,
+              display: `${t('orderId')} #${purchaseOrder.id} (${supplierName}) - ${purchaseOrder.orderDate} - ${t('additionalFees')} - ${t('remaining')}: ${remainingFeeBalanceNative.toFixed(2)} ${feeCurrency}`,
+              remainingAmount: remainingFeeBalanceNative,
+              category: 'additionalFees',
+              orderType: 'purchase',
+              currency: feeCurrency,
+              orderDate: purchaseOrder.orderDate,
+            });
+          }
         }
       }
     });
     return list;
-  }, [allOrders, paymentsByOrderAndCategory, isIncoming, isEdit, payment, calculatePurchaseOrderBreakdown, customerMap, supplierMap, currencyRates]);
+  }, [allOrders, paymentsByOrderAndCategoryAZN, isIncoming, isEdit, payment, supplierMap, currencyRates]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -269,11 +293,11 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
         setPayment(prev => ({
           ...prev,
           orderId: parseInt(orderIdStr),
-          paymentCategory: category as 'products' | 'fees',
+          paymentCategory: category as Payment['paymentCategory'], // Use new specific categories
           manualDescription: undefined,
           date: selectedOrderOption.orderDate || MOCK_CURRENT_DATE.toISOString().slice(0, 10), // Set date from order
           amount: parseFloat(selectedOrderOption.remainingAmount.toFixed(2)), // Set amount to remaining balance
-          paymentCurrency: selectedOrderOption.currency, // Set payment currency to order's currency
+          paymentCurrency: selectedOrderOption.currency, // Set payment currency to the category's native currency
         }));
         setSelectedPaymentCurrency(selectedOrderOption.currency); // Update local state for currency select
         
@@ -324,7 +348,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
     } else {
       const [orderIdStr, category] = selectedOrderIdentifier.split('-');
       paymentToSave.orderId = parseInt(orderIdStr);
-      paymentToSave.paymentCategory = category as 'products' | 'fees';
+      paymentToSave.paymentCategory = category as Payment['paymentCategory']; // Use specific categories
       delete paymentToSave.manualDescription;
 
       const selectedOrderOption = ordersWithBalance.find(o =>
@@ -332,17 +356,31 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ paymentId, type, onSuccess })
       );
 
       if (selectedOrderOption) {
-        let remainingAmountInAZN = selectedOrderOption.remainingAmount;
-        if (selectedOrderOption.currency !== 'AZN') {
-          const order = (isIncoming ? sellOrderMap : purchaseOrderMap)[selectedOrderOption.id];
-          if (order) {
-            const orderNativeToAznRate = order.currency === 'AZN' ? 1 : (order.exchangeRate || currencyRates[order.currency] || 1);
-            remainingAmountInAZN = selectedOrderOption.remainingAmount * orderNativeToAznRate;
+        // Get the total value of the specific category in AZN
+        let totalCategoryValueAZN = 0;
+        const order = (isIncoming ? sellOrderMap : purchaseOrderMap)[selectedOrderOption.id];
+        if (order) {
+          if (selectedOrderOption.category === 'products') {
+            if (isIncoming) { // Sell Order
+              totalCategoryValueAZN = (order as SellOrder).total;
+            } else { // Purchase Order
+              const productsSubtotalNative = (order as PurchaseOrder).items?.reduce((sum, item) => sum + (item.qty * item.price), 0) || 0;
+              totalCategoryValueAZN = productsSubtotalNative * ((order as PurchaseOrder).currency === 'AZN' ? 1 : ((order as PurchaseOrder).exchangeRate || currencyRates[(order as PurchaseOrder).currency] || 1));
+            }
+          } else if (selectedOrderOption.category === 'transportationFees') {
+            totalCategoryValueAZN = (order as PurchaseOrder).transportationFees * ((order as PurchaseOrder).transportationFeesCurrency === 'AZN' ? 1 : currencyRates[(order as PurchaseOrder).transportationFeesCurrency] || 1);
+          } else if (selectedOrderOption.category === 'customFees') {
+            totalCategoryValueAZN = (order as PurchaseOrder).customFees * ((order as PurchaseOrder).customFeesCurrency === 'AZN' ? 1 : currencyRates[(order as PurchaseOrder).customFeesCurrency] || 1);
+          } else if (selectedOrderOption.category === 'additionalFees') {
+            totalCategoryValueAZN = (order as PurchaseOrder).additionalFees * ((order as PurchaseOrder).additionalFeesCurrency === 'AZN' ? 1 : currencyRates[(order as PurchaseOrder).additionalFeesCurrency] || 1);
           }
         }
 
-        if (amountInAZN > remainingAmountInAZN + 0.001) {
-          showAlertModal('Error', `Payment amount (${amountInAZN.toFixed(2)} AZN) exceeds the remaining balance for this category. Remaining: ${remainingAmountInAZN.toFixed(2)} AZN.`);
+        const currentPaymentsForCategoryAZN = adjustedPaymentsAZN[selectedOrderOption.category] || 0; // Use adjustedPaymentsAZN
+        const remainingAmountForCategoryAZN = totalCategoryValueAZN - currentPaymentsForCategoryAZN;
+
+        if (amountInAZN > remainingAmountForCategoryAZN + 0.001) {
+          showAlertModal('Error', `Payment amount (${amountInAZN.toFixed(2)} AZN) exceeds the remaining balance for this category. Remaining: ${remainingAmountForCategoryAZN.toFixed(2)} AZN.`);
           return;
         }
       }

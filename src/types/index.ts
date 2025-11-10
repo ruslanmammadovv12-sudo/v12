@@ -79,7 +79,7 @@ export interface SellOrder {
 export interface Payment {
   id: number;
   orderId: number; // Linked order ID, 0 for manual expense
-  paymentCategory?: 'products' | 'fees' | 'manual'; // New field to specify what the payment is for
+  paymentCategory?: 'products' | 'transportationFees' | 'customFees' | 'additionalFees' | 'manual'; // Updated field to be more specific
   manualDescription?: string; // For manual expenses
   date: string;
   amount: number; // Amount in paymentCurrency
