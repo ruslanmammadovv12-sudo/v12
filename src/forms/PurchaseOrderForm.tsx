@@ -106,16 +106,26 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
 
     const productsSubtotalAZN = productsSubtotalNative * currentExchangeRate;
 
+    // Calculate individual fees in AZN for total calculation
     const transportationFeesAZN = (order.transportationFees || 0) * ((order.transportationFeesCurrency || 'AZN') === 'AZN' ? 1 : (currencyRates[order.transportationFeesCurrency || 'AZN'] || 1));
     const customFeesAZN = (order.customFees || 0) * ((order.customFeesCurrency || 'AZN') === 'AZN' ? 1 : (currencyRates[order.customFeesCurrency || 'AZN'] || 1));
     const additionalFeesAZN = (order.additionalFees || 0) * ((order.additionalFeesCurrency || 'AZN') === 'AZN' ? 1 : (currencyRates[order.additionalFeesCurrency || 'AZN'] || 1));
 
     const totalFeesAZN = transportationFeesAZN + customFeesAZN + additionalFeesAZN;
-    
-    // Convert total fees from AZN back to the selected order currency for display
-    const totalFeesNative = selectedCurrency === 'AZN' ? totalFeesAZN : (totalFeesAZN / currentExchangeRate);
 
     const totalOrderValueAZN = productsSubtotalAZN + totalFeesAZN;
+
+    // Prepare fees breakdown for display in their native currencies
+    const feesBreakdownForDisplay: { [currency: string]: number } = {};
+    if ((order.transportationFees || 0) > 0) {
+      feesBreakdownForDisplay[order.transportationFeesCurrency || 'AZN'] = (feesBreakdownForDisplay[order.transportationFeesCurrency || 'AZN'] || 0) + (order.transportationFees || 0);
+    }
+    if ((order.customFees || 0) > 0) {
+      feesBreakdownForDisplay[order.customFeesCurrency || 'AZN'] = (feesBreakdownForDisplay[order.customFeesCurrency || 'AZN'] || 0) + (order.customFees || 0);
+    }
+    if ((order.additionalFees || 0) > 0) {
+      feesBreakdownForDisplay[order.additionalFeesCurrency || 'AZN'] = (feesBreakdownForDisplay[order.additionalFeesCurrency || 'AZN'] || 0) + (order.additionalFees || 0);
+    }
 
     // Calculate landed cost per unit for each item
     const updatedOrderItems: OrderItem[] = orderItems.map(item => {
@@ -149,14 +159,14 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
       };
     });
 
-    return { totalOrderValueAZN, updatedOrderItems, productsSubtotalNative, totalFeesNative };
+    return { totalOrderValueAZN, updatedOrderItems, productsSubtotalNative, feesBreakdownForDisplay };
   }, [order, orderItems, selectedCurrency, currentExchangeRate, currencyRates]);
 
   const [productsSubtotalNative, setProductsSubtotalNative] = useState(0);
-  const [totalFeesNative, setTotalFeesNative] = useState(0);
+  const [displayedFeesBreakdown, setDisplayedFeesBreakdown] = useState<{ [currency: string]: number }>({}); // New state for fees breakdown
 
   useEffect(() => {
-    const { totalOrderValueAZN, updatedOrderItems: calculatedOrderItems, productsSubtotalNative, totalFeesNative } = calculateTotalOrderValue();
+    const { totalOrderValueAZN, updatedOrderItems: calculatedOrderItems, productsSubtotalNative, feesBreakdownForDisplay } = calculateTotalOrderValue();
     setOrder(prev => ({ ...prev, total: parseFloat(totalOrderValueAZN.toFixed(2)) }));
     setOrderItems(prevItems => prevItems.map((prevItem, index) => {
       const calculatedItem = calculatedOrderItems[index];
@@ -170,7 +180,7 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
       return prevItem;
     }));
     setProductsSubtotalNative(productsSubtotalNative);
-    setTotalFeesNative(totalFeesNative);
+    setDisplayedFeesBreakdown(feesBreakdownForDisplay); // Update the new state
   }, [order.transportationFees, order.customFees, order.additionalFees, order.transportationFeesCurrency, order.customFeesCurrency, order.additionalFeesCurrency, orderItems.map(i => `${i.productId}-${i.qty}-${i.price}-${i.itemTotal}`).join(','), selectedCurrency, manualExchangeRate, currencyRates, calculateTotalOrderValue]);
 
 
@@ -580,7 +590,10 @@ const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({ orderId, onSucces
           <Input
             id="totalFees"
             type="text"
-            value={`${totalFeesNative.toFixed(2)} ${selectedCurrency}`}
+            value={Object.entries(displayedFeesBreakdown)
+              .sort(([currencyA], [currencyB]) => currencyA.localeCompare(currencyB)) // Sort for consistent display
+              .map(([currency, amount]) => `${amount.toFixed(2)} ${currency}`)
+              .join(', ')}
             readOnly
             className="col-span-3 font-semibold bg-gray-50 dark:bg-slate-700"
           />
