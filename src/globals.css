@@ -97,6 +97,6 @@
 
   html, body {
     @apply bg-background text-foreground;
-    overflow-x: hidden; /* Prevent horizontal scrollbar from scaling */
+    overflow: hidden; /* Prevent all document-level scrolling */
   }
 }

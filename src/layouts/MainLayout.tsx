@@ -28,7 +28,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     // Adjust width/height to prevent scrollbars due to scaling
     document.documentElement.style.width = `${100 / scale}%`;
     document.documentElement.style.height = `${100 / scale}%`;
-    document.body.style.overflow = 'auto'; // Ensure body can scroll if content overflows after scaling
+    // Removed: document.body.style.overflow = 'auto'; // This caused the entire body to scroll
 
     return () => {
       // Clean up styles on unmount or setting change
@@ -36,14 +36,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       document.documentElement.style.transformOrigin = '';
       document.documentElement.style.width = '';
       document.documentElement.style.height = '';
-      document.body.style.overflow = '';
+      // Removed: document.body.style.overflow = '';
     };
   }, [settings.theme, settings.displayScale]);
 
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-slate-900">
       <Sidebar />
-      <div id="main-content" className="ml-64 p-8 flex-grow main-content">
+      <div id="main-content" className="ml-64 p-8 flex-grow overflow-y-auto h-screen"> {/* Added h-screen and overflow-y-auto */}
         {children}
         <MadeWithDyad />
       </div>
