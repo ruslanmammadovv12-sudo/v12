@@ -28,8 +28,8 @@ const PurchaseOrders: React.FC = () => {
   const [editingOrderId, setEditingOrderId] = useState<number | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'orderDate', direction: 'descending' });
   const [filterWarehouseId, setFilterWarehouseId] = useState<number | 'all'>('all');
-  const [filterSupplierId, setFilterSupplierId] = useState<number | 'all'>('all'); // New state for supplier filter
-  const [searchSupplierName, setSearchSupplierName] = useState<string>(''); // New state for manual supplier search
+  const [filterSupplierValue, setFilterSupplierValue] = useState<number | 'all' | string>('all'); // Can be ID, 'all', or search string
+  const [openSupplierCombobox, setOpenSupplierCombobox] = useState(false); // State for supplier combobox
   const [startDateFilter, setStartDateFilter] = useState<string>('');
   const [endDateFilter, setEndDateFilter] = useState<string>('');
   
@@ -83,9 +83,17 @@ const PurchaseOrders: React.FC = () => {
     if (filterWarehouseId !== 'all') {
       filteredOrders = filteredOrders.filter(order => order.warehouseId === filterWarehouseId);
     }
-    // Apply new supplier filter
-    if (filterSupplierId !== 'all') {
-      filteredOrders = filteredOrders.filter(order => order.contactId === filterSupplierId);
+    
+    // Apply supplier filter based on type of filterSupplierValue
+    if (filterSupplierValue !== 'all') {
+      if (typeof filterSupplierValue === 'number') {
+        filteredOrders = filteredOrders.filter(order => order.contactId === filterSupplierValue);
+      } else if (typeof filterSupplierValue === 'string') {
+        const lowercasedSearch = filterSupplierValue.toLowerCase();
+        filteredOrders = filteredOrders.filter(order =>
+          (supplierMap[order.contactId] || '').toLowerCase().includes(lowercasedSearch)
+        );
+      }
     }
 
     if (startDateFilter) {
@@ -127,14 +135,6 @@ const PurchaseOrders: React.FC = () => {
         additionalFeesDisplayString, // New field for display
       };
     });
-
-    // Apply manual supplier name search filter
-    if (searchSupplierName) {
-      const lowercasedSearch = searchSupplierName.toLowerCase();
-      return sortableItems.filter(order =>
-        order.supplierName.toLowerCase().includes(lowercasedSearch)
-      );
-    }
 
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
@@ -179,7 +179,7 @@ const PurchaseOrders: React.FC = () => {
       });
     }
     return sortableItems;
-  }, [purchaseOrders, supplierMap, warehouseMap, productMap, sortConfig, filterWarehouseId, filterSupplierId, searchSupplierName, startDateFilter, endDateFilter, productFilterId, currencyRates, formatFeesDisplay]);
+  }, [purchaseOrders, supplierMap, warehouseMap, productMap, sortConfig, filterWarehouseId, filterSupplierValue, startDateFilter, endDateFilter, productFilterId, currencyRates, formatFeesDisplay]);
 
   const handleAddOrder = () => {
     setEditingOrderId(undefined);
@@ -236,37 +236,76 @@ const PurchaseOrders: React.FC = () => {
       </div>
 
       <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end"> {/* Changed to 6 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end"> {/* Changed to 5 columns */}
           <div>
             <Label htmlFor="supplier-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
               {t('filterBySupplier')}
             </Label>
-            <Select onValueChange={(value) => setFilterSupplierId(value === 'all' ? 'all' : parseInt(value))} value={String(filterSupplierId)}>
-              <SelectTrigger className="w-full mt-1">
-                <SelectValue placeholder={t('allSuppliers')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('allSuppliers')}</SelectItem>
-                {suppliers.map(s => (
-                  <SelectItem key={s.id} value={String(s.id)}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="search-supplier-name" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-              {t('searchBySupplierName')}
-            </Label>
-            <Input
-              id="search-supplier-name"
-              type="text"
-              placeholder={t('enterSupplierName')}
-              value={searchSupplierName}
-              onChange={(e) => setSearchSupplierName(e.target.value)}
-              className="mt-1 w-full p-2 border rounded-md shadow-sm bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-            />
+            <Popover open={openSupplierCombobox} onOpenChange={setOpenSupplierCombobox}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openSupplierCombobox}
+                  className="w-full justify-between mt-1"
+                >
+                  {filterSupplierValue === 'all'
+                    ? t('allSuppliers')
+                    : typeof filterSupplierValue === 'number'
+                      ? supplierMap[filterSupplierValue] || t('allSuppliers')
+                      : filterSupplierValue // Display the typed text if it's a string
+                  }
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                <Command>
+                  <CommandInput
+                    placeholder={t('searchSupplierByName')}
+                    value={typeof filterSupplierValue === 'string' && filterSupplierValue !== 'all' ? filterSupplierValue : ''}
+                    onValueChange={(currentValue) => {
+                      setFilterSupplierValue(currentValue || 'all');
+                    }}
+                  />
+                  <CommandEmpty>{t('noSupplierFound')}</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="all-suppliers"
+                      onSelect={() => {
+                        setFilterSupplierValue('all');
+                        setOpenSupplierCombobox(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          filterSupplierValue === 'all' ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {t('allSuppliers')}
+                    </CommandItem>
+                    {suppliers.map((supplier) => (
+                      <CommandItem
+                        key={supplier.id}
+                        value={supplier.name} // Searchable value
+                        onSelect={() => {
+                          setFilterSupplierValue(supplier.id);
+                          setOpenSupplierCombobox(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filterSupplierValue === supplier.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {supplier.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <Label htmlFor="warehouse-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
@@ -433,7 +472,7 @@ const PurchaseOrders: React.FC = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="p-4 text-center text-gray-500 dark:text-slate-400">
-                  {filterWarehouseId !== 'all' || startDateFilter || endDateFilter || productFilterId !== 'all' || filterSupplierId !== 'all' || searchSupplierName ? t('noItemsFound') : t('noItemsFound')}
+                  {filterWarehouseId !== 'all' || startDateFilter || endDateFilter || productFilterId !== 'all' || filterSupplierValue !== 'all' ? t('noItemsFound') : t('noItemsFound')}
                 </TableCell>
               </TableRow>
             )}

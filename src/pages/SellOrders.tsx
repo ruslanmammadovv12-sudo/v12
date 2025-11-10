@@ -28,8 +28,8 @@ const SellOrders: React.FC = () => {
   const [editingOrderId, setEditingOrderId] = useState<number | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'orderDate', direction: 'descending' });
   const [filterWarehouseId, setFilterWarehouseId] = useState<number | 'all'>('all');
-  const [filterCustomerId, setFilterCustomerId] = useState<number | 'all'>('all'); // New state for customer filter
-  const [searchCustomerName, setSearchCustomerName] = useState<string>(''); // New state for manual customer search
+  const [filterCustomerValue, setFilterCustomerValue] = useState<number | 'all' | string>('all'); // Can be ID, 'all', or search string
+  const [openCustomerCombobox, setOpenCustomerCombobox] = useState(false); // State for customer combobox
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<SellOrder | null>(null);
 
@@ -122,9 +122,16 @@ const SellOrders: React.FC = () => {
     if (filterWarehouseId !== 'all') {
     filteredOrders = filteredOrders.filter(order => order.warehouseId === filterWarehouseId);
     }
-    // Apply new customer filter
-    if (filterCustomerId !== 'all') {
-      filteredOrders = filteredOrders.filter(order => order.contactId === filterCustomerId);
+    // Apply customer filter based on type of filterCustomerValue
+    if (filterCustomerValue !== 'all') {
+      if (typeof filterCustomerValue === 'number') {
+        filteredOrders = filteredOrders.filter(order => order.contactId === filterCustomerValue);
+      } else if (typeof filterCustomerValue === 'string') {
+        const lowercasedSearch = filterCustomerValue.toLowerCase();
+        filteredOrders = filteredOrders.filter(order =>
+          (customerMap[order.contactId] || '').toLowerCase().includes(lowercasedSearch)
+        );
+      }
     }
 
     // Apply date range filter
@@ -152,18 +159,10 @@ const SellOrders: React.FC = () => {
         customerName: customerMap[order.contactId] || 'N/A',
         warehouseName: warehouseMap[order.warehouseId] || 'N/A',
         totalItems,
-        // totalValueAZN, // Already exists in order object
+        totalValueAZN,
         paymentStatus,
       };
     });
-
-    // Apply manual customer name search filter
-    if (searchCustomerName) {
-      const lowercasedSearch = searchCustomerName.toLowerCase();
-      return sortableItems.filter(order =>
-        order.customerName.toLowerCase().includes(lowercasedSearch)
-      );
-    }
 
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
@@ -209,7 +208,7 @@ const SellOrders: React.FC = () => {
       });
     }
     return sortableItems;
-  }, [sellOrders, customerMap, warehouseMap, productMap, sortConfig, filterWarehouseId, filterCustomerId, searchCustomerName, startDateFilter, endDateFilter, productFilterId, getPaymentStatus]);
+  }, [sellOrders, customerMap, warehouseMap, productMap, sortConfig, filterWarehouseId, filterCustomerValue, startDateFilter, endDateFilter, productFilterId, getPaymentStatus]);
 
   return (
     <div className="container mx-auto p-4">
@@ -222,37 +221,76 @@ const SellOrders: React.FC = () => {
       </div>
 
       <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end"> {/* Changed to 6 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end"> {/* Changed to 5 columns */}
           <div>
             <Label htmlFor="customer-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
               {t('filterByCustomer')}
             </Label>
-            <Select onValueChange={(value) => setFilterCustomerId(value === 'all' ? 'all' : parseInt(value))} value={String(filterCustomerId)}>
-              <SelectTrigger className="w-full mt-1">
-                <SelectValue placeholder={t('allCustomers')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('allCustomers')}</SelectItem>
-                {customers.map(c => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="search-customer-name" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-              {t('searchByCustomerName')}
-            </Label>
-            <Input
-              id="search-customer-name"
-              type="text"
-              placeholder={t('enterCustomerName')}
-              value={searchCustomerName}
-              onChange={(e) => setSearchCustomerName(e.target.value)}
-              className="mt-1 w-full p-2 border rounded-md shadow-sm bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-            />
+            <Popover open={openCustomerCombobox} onOpenChange={setOpenCustomerCombobox}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openCustomerCombobox}
+                  className="w-full justify-between mt-1"
+                >
+                  {filterCustomerValue === 'all'
+                    ? t('allCustomers')
+                    : typeof filterCustomerValue === 'number'
+                      ? customerMap[filterCustomerValue] || t('allCustomers')
+                      : filterCustomerValue // Display the typed text if it's a string
+                  }
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                <Command>
+                  <CommandInput
+                    placeholder={t('searchCustomerByName')}
+                    value={typeof filterCustomerValue === 'string' && filterCustomerValue !== 'all' ? filterCustomerValue : ''}
+                    onValueChange={(currentValue) => {
+                      setFilterCustomerValue(currentValue || 'all');
+                    }}
+                  />
+                  <CommandEmpty>{t('noCustomerFound')}</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      value="all-customers"
+                      onSelect={() => {
+                        setFilterCustomerValue('all');
+                        setOpenCustomerCombobox(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          filterCustomerValue === 'all' ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {t('allCustomers')}
+                    </CommandItem>
+                    {customers.map((customer) => (
+                      <CommandItem
+                        key={customer.id}
+                        value={customer.name} // Searchable value
+                        onSelect={() => {
+                          setFilterCustomerValue(customer.id);
+                          setOpenCustomerCombobox(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            filterCustomerValue === customer.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {customer.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <Label htmlFor="warehouse-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
@@ -427,7 +465,7 @@ const SellOrders: React.FC = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="p-4 text-center text-gray-500 dark:text-slate-400">
-                  {filterWarehouseId !== 'all' || startDateFilter || endDateFilter || productFilterId !== 'all' || filterCustomerId !== 'all' || searchCustomerName ? t('noItemsFound') : t('noItemsFound')}
+                  {filterWarehouseId !== 'all' || startDateFilter || endDateFilter || productFilterId !== 'all' || filterCustomerValue !== 'all' ? t('noItemsFound') : t('noItemsFound')}
                 </TableCell>
               </TableRow>
             )}
