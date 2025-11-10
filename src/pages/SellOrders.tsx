@@ -28,6 +28,7 @@ const SellOrders: React.FC = () => {
   const [editingOrderId, setEditingOrderId] = useState<number | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'orderDate', direction: 'descending' });
   const [filterWarehouseId, setFilterWarehouseId] = useState<number | 'all'>('all');
+  const [filterCustomerId, setFilterCustomerId] = useState<number | 'all'>('all'); // New state for customer filter
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<SellOrder | null>(null);
 
@@ -118,7 +119,11 @@ const SellOrders: React.FC = () => {
     let filteredOrders = sellOrders;
 
     if (filterWarehouseId !== 'all') {
-      filteredOrders = filteredOrders.filter(order => order.warehouseId === filterWarehouseId);
+    filteredOrders = filteredOrders.filter(order => order.warehouseId === filterWarehouseId);
+    }
+    // Apply new customer filter
+    if (filterCustomerId !== 'all') {
+      filteredOrders = filteredOrders.filter(order => order.contactId === filterCustomerId);
     }
 
     // Apply date range filter
@@ -195,7 +200,7 @@ const SellOrders: React.FC = () => {
       });
     }
     return sortableItems;
-  }, [sellOrders, customerMap, warehouseMap, productMap, sortConfig, filterWarehouseId, startDateFilter, endDateFilter, productFilterId, getPaymentStatus]);
+  }, [sellOrders, customerMap, warehouseMap, productMap, sortConfig, filterWarehouseId, filterCustomerId, startDateFilter, endDateFilter, productFilterId, getPaymentStatus]);
 
   return (
     <div className="container mx-auto p-4">
@@ -208,7 +213,25 @@ const SellOrders: React.FC = () => {
       </div>
 
       <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end"> {/* Changed to 5 columns */}
+          <div>
+            <Label htmlFor="customer-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
+              {t('filterByCustomer')} {/* New Label */}
+            </Label>
+            <Select onValueChange={(value) => setFilterCustomerId(value === 'all' ? 'all' : parseInt(value))} value={String(filterCustomerId)}>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder={t('allCustomers')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allCustomers')}</SelectItem>
+                {customers.map(c => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label htmlFor="warehouse-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
               {t('filterByWarehouse')}
@@ -382,7 +405,7 @@ const SellOrders: React.FC = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="p-4 text-center text-gray-500 dark:text-slate-400">
-                  {filterWarehouseId !== 'all' || startDateFilter || endDateFilter || productFilterId !== 'all' ? t('noItemsFound') : t('noItemsFound')}
+                  {filterWarehouseId !== 'all' || startDateFilter || endDateFilter || productFilterId !== 'all' || filterCustomerId !== 'all' ? t('noItemsFound') : t('noItemsFound')}
                 </TableCell>
               </TableRow>
             )}

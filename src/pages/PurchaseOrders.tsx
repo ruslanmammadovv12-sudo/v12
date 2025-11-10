@@ -28,6 +28,7 @@ const PurchaseOrders: React.FC = () => {
   const [editingOrderId, setEditingOrderId] = useState<number | undefined>(undefined);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'orderDate', direction: 'descending' });
   const [filterWarehouseId, setFilterWarehouseId] = useState<number | 'all'>('all');
+  const [filterSupplierId, setFilterSupplierId] = useState<number | 'all'>('all'); // New state for supplier filter
   const [startDateFilter, setStartDateFilter] = useState<string>('');
   const [endDateFilter, setEndDateFilter] = useState<string>('');
   
@@ -80,6 +81,10 @@ const PurchaseOrders: React.FC = () => {
 
     if (filterWarehouseId !== 'all') {
       filteredOrders = filteredOrders.filter(order => order.warehouseId === filterWarehouseId);
+    }
+    // Apply new supplier filter
+    if (filterSupplierId !== 'all') {
+      filteredOrders = filteredOrders.filter(order => order.contactId === filterSupplierId);
     }
 
     if (startDateFilter) {
@@ -165,7 +170,7 @@ const PurchaseOrders: React.FC = () => {
       });
     }
     return sortableItems;
-  }, [purchaseOrders, supplierMap, warehouseMap, productMap, sortConfig, filterWarehouseId, startDateFilter, endDateFilter, productFilterId, currencyRates, formatFeesDisplay]);
+  }, [purchaseOrders, supplierMap, warehouseMap, productMap, sortConfig, filterWarehouseId, filterSupplierId, startDateFilter, endDateFilter, productFilterId, currencyRates, formatFeesDisplay]);
 
   const handleAddOrder = () => {
     setEditingOrderId(undefined);
@@ -222,7 +227,25 @@ const PurchaseOrders: React.FC = () => {
       </div>
 
       <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end"> {/* Changed to 5 columns */}
+          <div>
+            <Label htmlFor="supplier-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
+              {t('filterBySupplier')} {/* New Label */}
+            </Label>
+            <Select onValueChange={(value) => setFilterSupplierId(value === 'all' ? 'all' : parseInt(value))} value={String(filterSupplierId)}>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder={t('allSuppliers')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allSuppliers')}</SelectItem>
+                {suppliers.map(s => (
+                  <SelectItem key={s.id} value={String(s.id)}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label htmlFor="warehouse-filter" className="text-sm font-medium text-gray-700 dark:text-slate-300">
               {t('filterByWarehouse')}
@@ -388,7 +411,7 @@ const PurchaseOrders: React.FC = () => {
             ) : (
               <TableRow>
                 <TableCell colSpan={8} className="p-4 text-center text-gray-500 dark:text-slate-400">
-                  {filterWarehouseId !== 'all' || startDateFilter || endDateFilter || productFilterId !== 'all' ? t('noItemsFound') : t('noItemsFound')}
+                  {filterWarehouseId !== 'all' || startDateFilter || endDateFilter || productFilterId !== 'all' || filterSupplierId !== 'all' ? t('noItemsFound') : t('noItemsFound')}
                 </TableCell>
               </TableRow>
             )}
