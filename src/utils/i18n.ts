@@ -187,6 +187,10 @@ const i18n = {
     paymentForTransportationFees: 'Payment for Transportation Fees', // New translation
     paymentForCustomFees: 'Payment for Custom Fees', // New translation
     paymentForAdditionalFees: 'Payment for Additional Fees', // New translation
+    generateIncomingPayment: 'Generate Incoming Payment', // New translation
+    incomingPayment: 'Incoming Payment', // New translation
+    incomingPaymentAlreadyGenerated: 'An incoming payment has already been generated for this sell order.', // New translation
+    generatedSuccessfully: 'generated successfully', // New translation
   }
 };
 

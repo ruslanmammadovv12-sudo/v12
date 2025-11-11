@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useData, MOCK_CURRENT_DATE } from '@/context/DataContext';
 import { t } from '@/utils/i18n';
 import { toast } from 'sonner';
-import { SellOrder, Product, Customer, Warehouse, OrderItem, ProductMovement } from '@/types'; // Import types from types file
+import { SellOrder, Product, Customer, Warehouse, OrderItem, ProductMovement, Payment } from '@/types'; // Import types from types file
 
 interface SellOrderItemState {
   productId: number | '';
@@ -312,6 +312,60 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
 
   }, [order, orderItems, products, mainWarehouse, showAlertModal, setProducts, getNextId, saveItem, warehouseMap, sellOrders]);
 
+  const handleGenerateIncomingPayment = useCallback(() => {
+    const orderToSave: SellOrder = {
+      ...order,
+      id: order.id || getNextId('sellOrders'),
+      contactId: order.contactId as number,
+      warehouseId: order.warehouseId as number,
+      orderDate: order.orderDate || MOCK_CURRENT_DATE.toISOString().slice(0, 10),
+      status: order.status || 'Draft',
+      items: orderItems.filter(item => item.productId !== '' && parseFloat(String(item.qty)) > 0 && parseFloat(String(item.price)) >= 0).map(item => ({
+        productId: item.productId as number,
+        qty: parseFloat(String(item.qty)) || 0,
+        price: parseFloat(String(item.price)) || 0,
+      })),
+      vatPercent: order.vatPercent || 0,
+      total: order.total || 0,
+    };
+
+    if (!orderToSave.contactId || !orderToSave.orderDate || !orderToSave.total || orderToSave.total <= 0) {
+      showAlertModal('Validation Error', 'Customer, Order Date, and a positive Total amount are required before generating an incoming payment.');
+      return;
+    }
+
+    // Ensure the order is saved first to get a stable ID if it's new
+    saveItem('sellOrders', orderToSave);
+    setOrder(orderToSave); // Update local state with the potentially new ID
+
+    if (orderToSave.incomingPaymentId) {
+      showAlertModal('Info', t('incomingPaymentAlreadyGenerated'));
+      return;
+    }
+
+    const newPaymentId = getNextId('incomingPayments');
+    const newPayment: Payment = {
+      id: newPaymentId,
+      orderId: orderToSave.id,
+      paymentCategory: 'products', // Assuming payment is for products in a sell order
+      date: orderToSave.orderDate,
+      amount: orderToSave.total,
+      paymentCurrency: 'AZN', // Sell orders are in AZN
+      method: 'Bank Transfer', // Default method, can be changed later
+    };
+
+    saveItem('incomingPayments', newPayment);
+
+    setOrder(prev => {
+      const updatedOrder = { ...prev, incomingPaymentId: newPaymentId };
+      saveItem('sellOrders', updatedOrder); // Update the sell order with the payment ID
+      return updatedOrder;
+    });
+
+    toast.success(t('success'), { description: `${t('incomingPayment')} #${newPaymentId} ${t('generatedSuccessfully')}.` });
+
+  }, [order, orderItems, showAlertModal, getNextId, saveItem, sellOrders]);
+
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -392,6 +446,7 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
   }, [order, orderItems, products, isEdit, orderId, sellOrders, showAlertModal, productMap, getNextId, saveItem, updateStockFromOrder, onSuccess]);
 
   const isGenerateMovementDisabled = !!order.productMovementId;
+  const isGeneratePaymentDisabled = !!order.incomingPaymentId;
 
   return {
     order,
@@ -403,6 +458,7 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
     warehouseMap,
     mainWarehouse,
     isGenerateMovementDisabled,
+    isGeneratePaymentDisabled, // New return value
     handleChange,
     handleNumericChange,
     handleSelectChange,
@@ -410,6 +466,7 @@ export const useSellOrderForm = ({ orderId, onSuccess }: UseSellOrderFormProps) 
     removeOrderItem,
     handleOrderItemChange,
     handleGenerateProductMovement,
+    handleGenerateIncomingPayment, // New return value
     handleSubmit,
     showAlertModal,
     products,

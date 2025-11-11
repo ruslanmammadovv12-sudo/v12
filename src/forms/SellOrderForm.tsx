@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, DollarSign } from 'lucide-react'; // Import DollarSign icon
 import { t } from '@/utils/i18n';
 import { useSellOrderForm } from '@/hooks/useSellOrderForm';
 import SellOrderItemsField from '@/components/SellOrderItemsField';
@@ -23,6 +23,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     customerMap,
     warehouseMap,
     isGenerateMovementDisabled,
+    isGeneratePaymentDisabled, // New: from hook
     handleChange,
     handleNumericChange,
     handleSelectChange,
@@ -30,6 +31,7 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
     removeOrderItem,
     handleOrderItemChange,
     handleGenerateProductMovement,
+    handleGenerateIncomingPayment, // New: from hook
     handleSubmit,
     products, // Passed to SellOrderItemsField
     customers, // Passed to Select
@@ -154,6 +156,16 @@ const SellOrderForm: React.FC<SellOrderFormProps> = ({ orderId, onSuccess }) => 
         </div>
       </div>
       <div className="flex justify-end mt-6 border-t pt-4 dark:border-slate-700 space-x-2">
+        <Button 
+          type="button" 
+          onClick={handleGenerateIncomingPayment} 
+          variant="secondary" 
+          className="flex items-center"
+          disabled={isGeneratePaymentDisabled}
+        >
+          <DollarSign className="w-4 h-4 mr-2" />
+          {t('generateIncomingPayment')}
+        </Button>
         <Button 
           type="button" 
           onClick={handleGenerateProductMovement} 

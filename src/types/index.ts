@@ -74,6 +74,7 @@ export interface SellOrder {
   vatPercent: number;
   total: number; // Total in AZN (incl. VAT)
   productMovementId?: number; // New field to link to a generated product movement
+  incomingPaymentId?: number; // New field to link to a generated incoming payment
 }
 
 export interface Payment {
